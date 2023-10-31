@@ -1,0 +1,6 @@
+# Hashes of file build rules.
+ed8b2d6ab6f6ec1a6211c28cee5892d1 CMakeFiles/Shaders
+8c297b741b6d0f67e7d926116a994a3b shaders/triangle.frag.spv
+160275043079e37a4f903c269e4181f7 shaders/triangle.vert.spv
+0e1eef56ddb8a65ed3075c30b2ca6b85 vendor/glfw/CMakeFiles/uninstall
+a65fec93eb22fd182f6ffdf1cbb63790 vendor/glfw/src/CMakeFiles/update_mappings
