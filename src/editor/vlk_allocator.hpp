@@ -18,7 +18,6 @@ namespace gen {
 
 		static std::vector<VkVertexInputBindingDescription> get_binding_descriptions();
 		static std::vector<VkVertexInputAttributeDescription> get_attribute_descriptions();
-
 	};
 
 	struct vlk_allocation {
@@ -39,6 +38,8 @@ namespace gen {
 
 		vlk_allocation* allocate(VkDeviceSize size, VkDeviceSize alignment, VkMemoryPropertyFlags properties);
 		void deallocate(vlk_allocation* alloc);
+
+		int32_t find_suitable_pool(int32_t type);
 	private:
 		const std::string _LOGGER_TAG = "GEN_VLK_ALLOCATOR";
         logger _logger;

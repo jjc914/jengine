@@ -31,16 +31,20 @@ namespace gen {
     vlk_allocator::~vlk_allocator() {
         for (int32_t i = 0; i < _vlk_memory_pools.size(); ++i) {
             for (int32_t k = 0; k < _vlk_memory_pools[i].blocks.size(); ++k) {
-                vkFreeMemory
+                vkFreeMemory(_vlk_device, _vlk_memory_pools[i].blocks[k].memory, nullptr);
             }
         }
     }
 
-    vlk_allocation* allocate(VkDeviceSize size, VkDeviceSize alignment, VkMemoryPropertyFlags properties) {
-        return nullptr;
+    vlk_allocation* vlk_allocator::allocate(VkDeviceSize size, VkDeviceSize alignment, VkMemoryPropertyFlags properties) {
+
     }
 
     void vlk_allocator::deallocate(vlk_allocation* alloc) {
+
+    }
+
+    int32_t vlk_allocator::find_suitable_pool(int32_t type) {
 
     }
 }

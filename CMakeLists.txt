@@ -5,9 +5,9 @@ set(PROJECT_NAME jengine)
 set(TEST_NAME test)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build/bin")
 set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_STANDARD 17)
 
 project(${PROJECT_NAME})
-set(CMAKE_CXX_STANDARD 17)
 
 ## Vendor dependencies
 # TODO: change this to not be my directory
