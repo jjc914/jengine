@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 
 # Definitions
 set(PROJECT_NAME jengine)
-set(TEST_NAME test)
+set(TEST_NAME test_jengine)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build/bin")
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 17)
@@ -11,7 +11,7 @@ project(${PROJECT_NAME})
 
 ## Vendor dependencies
 # TODO: change this to not be my directory
-set(VULKAN_PATH "/Users/joshuachasnov/VulkanSDK/1.3.261.1/macOS")
+set(VULKAN_PATH "/Users/joshuachasnov/VulkanSDK/1.3.296.0/macOS")
 set(VULKAN_INCLUDE_DIRS ${VULKAN_PATH}/include)
 find_package(Vulkan REQUIRED FATAL_ERROR)
 set(LIB_DEPENDENCIES ${LIB_DEPENDENCIES} Vulkan::Vulkan shaderc_shared)
@@ -30,20 +30,47 @@ set(LIB_DEPENDENCIES ${LIB_DEPENDENCIES} glm)
 find_package(OpenGL REQUIRED)
 set(LIB_DEPENDENCIES ${LIB_DEPENDENCIES} OpenGL::GL glfw)
 
-## Self dependencies (libraries)
-add_subdirectory(lib/data-structure-lib)
-set(LIB_DEPENDENCIES ${LIB_DEPENDENCIES} dslib)
-add_subdirectory(lib/util-lib)
-set(LIB_DEPENDENCIES ${LIB_DEPENDENCIES} utilib)
+add_subdirectory(vendor/VulkanMemoryAllocator)
+set(LIB_DEPENDENCIES ${LIB_DEPENDENCIES} GPUOpen::VulkanMemoryAllocator)
 
-## Self dependencies (source)
+# -------------- IMGUI static library creation`
+#
+set(IMGUI_PATH ${CMAKE_CURRENT_LIST_DIR}/vendor/imgui)
+file(GLOB IMGUI_GLOB
+    ${IMGUI_PATH}/imgui.h
+    ${IMGUI_PATH}/imgui.cpp
+    ${IMGUI_PATH}/imconfig.h
+    ${IMGUI_PATH}/imgui_demo.cpp
+    ${IMGUI_PATH}/imgui_draw.cpp
+    ${IMGUI_PATH}/imgui_internal.h
+    ${IMGUI_PATH}/imstb_rectpack.h
+    ${IMGUI_PATH}/imstb_textedit.h
+    ${IMGUI_PATH}/imstb_truetype.h
+    ${IMGUI_PATH}/imgui_tables.cpp
+    ${IMGUI_PATH}/imgui_widgets.cpp
+
+    # specific bindings...
+    ${IMGUI_PATH}/backends/imgui_impl_glfw.h
+    ${IMGUI_PATH}/backends/imgui_impl_glfw.cpp
+    ${IMGUI_PATH}/backends/imgui_impl_vulkan.h
+    ${IMGUI_PATH}/backends/imgui_impl_vulkan.cpp)
+add_library(imgui STATIC ${IMGUI_GLOB})
+target_include_directories(imgui PUBLIC ${IMGUI_PATH})
+target_include_directories(imgui PUBLIC ${IMGUI_PATH}/backends)
+target_link_libraries(imgui PRIVATE glfw)
+target_link_libraries(imgui PRIVATE Vulkan::Vulkan)
+set(LIB_DEPENDENCIES ${LIB_DEPENDENCIES} imgui)
+# ----------------------------------------------------------------------
+
+## Sources
 set(SOURCE_FILES ${SOURCE_FILES}
-    src/ecs/ecs.hpp
-    src/engine/engine.hpp src/engine/engine.cpp
-    src/gui/gui.hpp src/gui/gui.cpp
-    src/editor/editor.hpp src/editor/editor.cpp
-    src/editor/screen.hpp src/editor/screen.cpp
-    src/editor/vlk_allocator.hpp src/editor/vlk_allocator.cpp
+    src/core/GraphicsApi.hpp
+    src/core/InputApi.hpp
+    src/core/WindowApi.hpp
+    src/utils/SparseVector.hpp
+    src/renderer/vulkan/VulkanApi.hpp src/renderer/vulkan/VulkanApi.cpp
+    src/window/glfw/GlfwApi.hpp src/window/glfw/GlfwApi.cpp
+    src/editor_ui/ImGuiLayer.hpp src/editor_ui/ImGuiLayer.cpp
 )
 
 set(SOURCE_FILES ${SOURCE_FILES} src/main.cpp)
