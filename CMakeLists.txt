@@ -10,10 +10,9 @@ set(CMAKE_CXX_STANDARD 17)
 project(${PROJECT_NAME})
 
 ## Vendor dependencies
-# TODO: change this to not be my directory
-set(VULKAN_PATH "/Users/joshuachasnov/VulkanSDK/1.3.296.0/macOS")
-set(VULKAN_INCLUDE_DIRS ${VULKAN_PATH}/include)
 find_package(Vulkan REQUIRED FATAL_ERROR)
+set(VULKAN_PATH ${Vulkan_INCLUDE_DIRS}/../)
+set(VULKAN_INCLUDE_DIRS ${VULKAN_PATH}/include)
 set(LIB_DEPENDENCIES ${LIB_DEPENDENCIES} Vulkan::Vulkan shaderc_shared)
 link_directories(${VULKAN_PATH}/lib)
 
