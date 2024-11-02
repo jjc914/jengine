@@ -1,22 +1,27 @@
 #ifndef IM_GUI_LAYER_HPP
 #define IM_GUI_LAYER_HPP
-
+ 
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include "renderer/vulkan/VulkanApi.hpp"
+#include "window/glfw/GlfwApi.hpp"
+
 class ImGuiLayer {
 public:
-    void initialize(void* window, void* instance, void* physical_device, void* device, void* queue, void* render_pass);
+    void initialize(VulkanApi* vk_api, GlfwApi* glfw_api, void* window);
     void update(void);
     void on_event(void);
     void destroy(void);
 private:
-    VkDevice _device;
-    VkCommandPool _command_pool;
-    VkCommandBuffer _command_buffer;
-    VkDescriptorPool _descriptor_pool;
-    VkFence _fence;
+    VulkanApi* _vk_api;
+    GlfwApi* _glfw_api;
+
+    void* _descriptor_pool;
+    void* _render_pass;
+    void* _command_buffer;
+    void* _framebuffer;
 };
 
 #endif

@@ -69,6 +69,7 @@ void* VulkanApi::create_instance(const std::vector<const char*>& required_extens
 void VulkanApi::create_device(void* surface) {
     _surface = (VkSurfaceKHR)surface;
     _init_physical_device();
+    _queue_family_indices = _find_queue_families(_physical_device);
     _init_device();
 }
 
@@ -82,7 +83,9 @@ void* VulkanApi::create_swapchain(uint32_t width, uint32_t height) {
 
     _create_swapchain_image_views(swapchain_i);
 
-    size_t render_pass = (size_t)create_render_pass((void*)swapchain_i);
+    RenderPassCreateInfo render_pass_create_info{};
+    render_pass_create_info.image_format = _vk_format_to_image_format(_swapchain_resources[swapchain_i].image_format);
+    size_t render_pass = (size_t)create_render_pass(&render_pass_create_info);
     resources.render_pass = render_pass;
 
     _create_swapchain_framebuffers(swapchain_i);
@@ -104,9 +107,9 @@ void* VulkanApi::create_swapchain(uint32_t width, uint32_t height) {
     return (void*)swapchain_i;
 }
 
-void* VulkanApi::create_render_pass(void* swapchain_i) {
+void* VulkanApi::create_render_pass(RenderPassCreateInfo* create_info) {
     VkAttachmentDescription color_attachment_description{};
-    color_attachment_description.format = _swapchain_resources[(size_t)swapchain_i].image_format;
+    color_attachment_description.format = _image_format_to_vk_format(create_info->image_format);
     color_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
     color_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     color_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -305,13 +308,11 @@ void* VulkanApi::create_pipeline(void* swapchain_i, void* render_pass_i) {
 
 void* VulkanApi::create_command_pool() {
     size_t command_pool_i = _command_pools.emplace();
-
-    QueueFamilyIndices indices = _find_queue_families(_physical_device);
         
     VkCommandPoolCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    create_info.queueFamilyIndex = indices.graphics_family.value();
+    create_info.queueFamilyIndex = _queue_family_indices.graphics_family.value();
     
     if (vkCreateCommandPool(_device, &create_info, nullptr, &_command_pools[command_pool_i].command_pool) != VK_SUCCESS) {
         std::cerr << "failed to create command pool" << std::endl;
@@ -345,6 +346,36 @@ std::vector<void*> VulkanApi::create_command_buffers(void* command_pool_i, size_
     std::clog << "allocated command buffers" << std::endl;
 
     return command_buffers;
+}
+
+void* VulkanApi::create_descriptor_pool() {
+    VkDescriptorPoolSize pool_sizes[] =
+	{
+		{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+	};
+
+	VkDescriptorPoolCreateInfo pool_info = {};
+	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+	pool_info.maxSets = 1000;
+	pool_info.poolSizeCount = std::size(pool_sizes);
+	pool_info.pPoolSizes = pool_sizes;
+
+    size_t descriptor_pool_i = _descriptor_pools.emplace();
+	if (vkCreateDescriptorPool(_device, &pool_info, nullptr, &_descriptor_pools[descriptor_pool_i]) != VK_SUCCESS) {
+        std::cerr << "failed to create descriptor pool" << std::endl;
+    }
+    return (void*)descriptor_pool_i;
 }
 
 void VulkanApi::draw_frame(void* swapchain_i, void* pipeline_i) {
@@ -462,8 +493,7 @@ int32_t VulkanApi::_rate_physical_device(VkPhysicalDevice device) const {
 }
 
 bool VulkanApi::_is_device_suitable(VkPhysicalDevice device) const {
-    QueueFamilyIndices queue_family_indices = _find_queue_families(device);
-        
+    QueueFamilyIndices indices = _find_queue_families(device);
     bool is_extensions_supported = _is_device_extension_supported(device);
     
     bool is_swapchain_adequate = false;
@@ -472,7 +502,7 @@ bool VulkanApi::_is_device_suitable(VkPhysicalDevice device) const {
         is_swapchain_adequate = !swapchain_support.formats.empty() && !swapchain_support.present_modes.empty();
     }
 
-    return queue_family_indices.is_complete() && is_extensions_supported && is_swapchain_adequate;
+    return indices.is_complete() && is_extensions_supported && is_swapchain_adequate;
 }
 
 bool VulkanApi::_is_instance_extensions_supported(std::vector<const char*>* enabled_extensions, std::vector<const char*> required_extensions) const {
@@ -693,7 +723,7 @@ void VulkanApi::_init_physical_device() {
     if (device_scores.rbegin()->first > 0) {
         _physical_device = device_scores.rbegin()->second;
     } else {
-        std::cerr << "failed to find a suitable GPU";
+        std::cerr << "failed to find a suitable GPU" << std::endl;
     }
 
     VkPhysicalDeviceProperties device_properties;
@@ -707,9 +737,8 @@ void VulkanApi::_init_device() {
     std::vector<const char*> enabled_extensions;
     enabled_extensions.insert(enabled_extensions.end(), _PLATFORM_REQUIRED_DEVICE_EXTENSIONS.begin(), _PLATFORM_REQUIRED_DEVICE_EXTENSIONS.end());
     enabled_extensions.insert(enabled_extensions.end(), _REQUIRED_DEVICE_EXTENSIONS.begin(), _REQUIRED_DEVICE_EXTENSIONS.end());
-    
-    QueueFamilyIndices indices = _find_queue_families(_physical_device);
-    std::set<uint32_t> unique_queue_families = { indices.graphics_family.value(), indices.present_family.value() };
+
+    std::set<uint32_t> unique_queue_families = { _queue_family_indices.graphics_family.value(), _queue_family_indices.present_family.value() };
     std::vector<VkDeviceQueueCreateInfo> queue_create_infos(unique_queue_families.size());
     int32_t i = 0;
     for (uint32_t index : unique_queue_families) {
@@ -739,8 +768,8 @@ void VulkanApi::_init_device() {
         std::cerr << "failed to create logical device" << std::endl;
     }
     
-    vkGetDeviceQueue(_device, indices.graphics_family.value(), 0, &_graphics_queue);
-    vkGetDeviceQueue(_device, indices.present_family.value(), 0, &_present_queue);
+    vkGetDeviceQueue(_device, _queue_family_indices.graphics_family.value(), 0, &_graphics_queue);
+    vkGetDeviceQueue(_device, _queue_family_indices.present_family.value(), 0, &_present_queue);
     std::clog << "created logical device" << std::endl;
 }
 
@@ -759,8 +788,7 @@ size_t VulkanApi::_create_swapchain(SwapchainResources& resources) {
     }
     
     VkSwapchainCreateInfoKHR create_info{};
-    QueueFamilyIndices indices = _find_queue_families(_physical_device);
-    uint32_t queue_family_indices[] = {indices.graphics_family.value(), indices.present_family.value()};
+    uint32_t queue_family_indices[] = {_queue_family_indices.graphics_family.value(), _queue_family_indices.present_family.value()};
     
     create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     create_info.surface = _surface;
@@ -772,7 +800,7 @@ size_t VulkanApi::_create_swapchain(SwapchainResources& resources) {
     create_info.imageArrayLayers = 1;
     create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     
-    if (indices.graphics_family != indices.present_family) {
+    if (_queue_family_indices.graphics_family != _queue_family_indices.present_family) {
         create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         create_info.queueFamilyIndexCount = 2;
         create_info.pQueueFamilyIndices = queue_family_indices;
@@ -928,8 +956,7 @@ void VulkanApi::_update_swapchain(size_t swapchain_i) {
     }
     
     VkSwapchainCreateInfoKHR create_info{};
-    QueueFamilyIndices indices = _find_queue_families(_physical_device);
-    uint32_t queue_family_indices[] = {indices.graphics_family.value(), indices.present_family.value()};
+    uint32_t queue_family_indices[] = {_queue_family_indices.graphics_family.value(), _queue_family_indices.present_family.value()};
     
     create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     create_info.surface = _surface;
@@ -941,7 +968,7 @@ void VulkanApi::_update_swapchain(size_t swapchain_i) {
     create_info.imageArrayLayers = 1;
     create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     
-    if (indices.graphics_family != indices.present_family) {
+    if (_queue_family_indices.graphics_family != _queue_family_indices.present_family) {
         create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         create_info.queueFamilyIndexCount = 2;
         create_info.pQueueFamilyIndices = queue_family_indices;
@@ -1071,6 +1098,28 @@ void VulkanApi::_record_command_buffer(VkCommandBuffer& buffer, VkPipeline& pipe
     }
 }
 
+VkFormat VulkanApi::_image_format_to_vk_format(RenderPassCreateInfo::ImageFormat format) {
+    switch(format) {
+        case RenderPassCreateInfo::ImageFormat::FORMAT_SRGB8:
+            return VkFormat::VK_FORMAT_B8G8R8A8_SRGB;
+        default:
+            std::cerr << "unknown image format" << std::endl;
+            break;
+    }
+    return (VkFormat)0;
+}
+
+RenderPassCreateInfo::ImageFormat VulkanApi::_vk_format_to_image_format(VkFormat format) {
+    switch(format) {
+        case VkFormat::VK_FORMAT_B8G8R8A8_SRGB:
+            return RenderPassCreateInfo::ImageFormat::FORMAT_SRGB8;
+        default:
+            std::cerr << "unknown image format" << std::endl;
+            break;
+    }
+    return RenderPassCreateInfo::ImageFormat::NONE;
+}
+
 void VulkanApi::destroy_instance() {
 #ifdef VLK_ENABLE_VALIDATION_LAYERS
     auto vkDestroyDebugUtilsMessengerEXT =(PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(_instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -1159,18 +1208,46 @@ void VulkanApi::wait_device_idle() {
     vkDeviceWaitIdle(_device);
 }
 
-void* VulkanApi::get_physical_device() {
-    return (void*)_physical_device;
-}
-
-void* VulkanApi::get_device() {
-    return (void*)_device;
-}
-
-void* VulkanApi::get_graphics_queue() {
-    return (void*)_graphics_queue;
-}
-
 void* VulkanApi::get_render_pass_handle(void* render_pass) {
     return (void*)_render_passes[(size_t)render_pass];
 }
+
+void* VulkanApi::get_instance_handle(void) {
+    return (void*)_instance;
+}
+
+void* VulkanApi::get_physical_device_handle(void) {
+    return (void*)_physical_device;
+}
+
+void* VulkanApi::get_device_handle(void) {
+    return (void*)_device;
+}
+
+void* VulkanApi::get_graphics_queue_family(void) {
+    return (void*)(uint64_t)_queue_family_indices.graphics_family.value();
+}
+
+void* VulkanApi::get_graphics_queue_handle(void) {
+    return (void*)_graphics_queue;
+}
+
+void* VulkanApi::get_descriptor_pool_handle(void* descriptor_pool) {
+    return (void*)_descriptor_pools[(size_t)descriptor_pool];
+}
+
+// void* VulkanApi::get_command_pool_handle(void* command_pool) {
+//     return (void*);
+// }
+
+// void* VulkanApi::get_command_buffer_handle(void* command_buffer) {
+//     return (void*);
+// }
+
+// void* VulkanApi::get_render_pass_handle(void* render_pass) {
+//     return (void*);
+// }
+
+// void* VulkanApi::get_framebuffer_handle(void* framebuffer) {
+//     return (void*);
+// }

@@ -17,7 +17,7 @@ namespace {
         std::optional<uint32_t> graphics_family;
         std::optional<uint32_t> present_family;
 
-        bool is_complete() {
+        bool is_complete() const {
             return graphics_family.has_value() && present_family.has_value();
         }
     };
@@ -69,11 +69,13 @@ public:
     void* create_instance(const std::vector<const char*>& required_extensions) override;
     void create_device(void* surface) override;
     void* create_swapchain(uint32_t width, uint32_t height) override;
-    void* create_render_pass(void* swapchain_i) override;
+    void* create_render_pass(RenderPassCreateInfo* create_info) override;
     void* create_shader(std::string path) override;
     void* create_pipeline(void* swapchain_i, void* render_pass_i) override;
     void* create_command_pool() override;
     std::vector<void*> create_command_buffers(void* command_pool_i, size_t count) override;
+    void* create_descriptor_pool(void) override;
+
     void draw_frame(void* swapchain_i, void* pipeline) override;
     void update_swapchain(void* swapchain_i, uint32_t width, uint32_t height) override;
 
@@ -86,12 +88,18 @@ public:
     void destroy_command_pool(void* command_pool_i) override;
 
     void wait_device_idle(void) override;
-
-    void* get_physical_device(void) override;
-    void* get_device(void) override;
-    void* get_graphics_queue(void) override;
     
     void* get_render_pass_handle(void* render_pass) override;
+    void* get_instance_handle(void) override;
+    void* get_physical_device_handle(void) override;
+    void* get_device_handle(void) override;
+    void* get_graphics_queue_family(void) override;
+    void* get_graphics_queue_handle(void) override;
+    void* get_descriptor_pool_handle(void* descriptor_pool) override;
+    // void* get_command_pool_handle(void* command_pool) override;
+    // void* get_command_buffer_handle(void* command_buffer) override;
+    // void* get_render_pass_handle(void* render_pass) override;
+    // void* get_framebuffer_handle(void* framebuffer) override;
 
 private:
     bool _is_validation_layers_supported(void) const;
@@ -118,6 +126,9 @@ private:
     void _create_swapchain_fences(size_t swapchain_i);
     void _update_swapchain(size_t swapchain_i);
     void _record_command_buffer(VkCommandBuffer& buffer, VkPipeline& pipeline, SwapchainResources& resources, uint32_t image_index);
+
+    VkFormat _image_format_to_vk_format(RenderPassCreateInfo::ImageFormat format);
+    RenderPassCreateInfo::ImageFormat _vk_format_to_image_format(VkFormat format);
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL _debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                               VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -153,6 +164,7 @@ private:
 
     VkQueue _graphics_queue;
     VkQueue _present_queue;
+    QueueFamilyIndices _queue_family_indices;
 
     SparseVector<VkSwapchainKHR> _swapchains;
     SparseVector<SwapchainResources> _swapchain_resources;
@@ -167,6 +179,8 @@ private:
     SparseVector<VkCommandBuffer> _command_buffers;
     SparseVector<VkSemaphore> _semaphores;
     SparseVector<VkFence> _fences;
+
+    SparseVector<VkDescriptorPool> _descriptor_pools;
 };
 
 #endif

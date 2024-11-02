@@ -8,10 +8,12 @@
 #include <iostream>
 
 int main(int argc, const char* argv[]) {
-    VulkanApi vlk_api;
+    VulkanApi vulkan_api;
+    GraphicsApi* graphics_api = &vulkan_api;
+
     GlfwApi glfw_api;
-    GraphicsApi* graphics_api = &vlk_api;
     WindowApi* window_api = &glfw_api;
+
     ImGuiLayer imgui_layer = ImGuiLayer();
     
     void* instance = graphics_api->create_instance(window_api->get_required_extensions());
@@ -22,10 +24,14 @@ int main(int argc, const char* argv[]) {
     uint32_t width, height;
     window_api->get_window_size(window, &width, &height);
     void* swapchain = graphics_api->create_swapchain(width, height);
-    void* render_pass = graphics_api->create_render_pass(swapchain);
+
+    RenderPassCreateInfo render_pass_create_info{};
+    render_pass_create_info.image_format = RenderPassCreateInfo::ImageFormat::FORMAT_SRGB8;
+    void* render_pass = graphics_api->create_render_pass(&render_pass_create_info);
+
     void* pipeline = graphics_api->create_pipeline(swapchain, render_pass);
 
-    imgui_layer.initialize(window_api->get_window_handle(window), instance, graphics_api->get_physical_device(), graphics_api->get_device(), graphics_api->get_graphics_queue(), graphics_api->get_render_pass_handle(render_pass));
+    imgui_layer.initialize((VulkanApi*)graphics_api, (GlfwApi*)window_api, window);
 
     while (!window_api->window_should_close(window)) {
         window_api->poll_events();
