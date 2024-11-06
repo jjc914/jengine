@@ -2,6 +2,7 @@
 #define WINDOW_API_HPP
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 class WindowApi {

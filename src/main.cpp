@@ -1,13 +1,36 @@
-#include "core/GraphicsApi.hpp"
-#include "core/WindowApi.hpp"
+#include "core/api/GraphicsApi.hpp"
+#include "core/api/WindowApi.hpp"
 
 #include "renderer/vulkan/VulkanApi.hpp"
 #include "window/glfw/GlfwApi.hpp"
 #include "editor_ui/ImGuiLayer.hpp"
 
+#include "core/ecs/EcsManager.hpp"
+
 #include <iostream>
 
+struct Position {
+    float x, y, z;
+};
+
+struct Rotation {
+    float x, y, z;
+};
+
+void test_ecs() {
+    EcsManager manager;
+
+    Entity entity_a = manager.create_entity();
+    Entity entity_b = manager.create_entity();
+    manager.add_components<Position, Rotation>(entity_a, {5.0f, 2.0f, 4.0f}, {1.0f, 0.05f, 0.01f});
+
+    manager.delete_entity(entity_a);
+}
+
 int main(int argc, const char* argv[]) {
+    test_ecs();
+    return 0;
+
     VulkanApi vulkan_api;
     GraphicsApi* graphics_api = &vulkan_api;
 

@@ -1,7 +1,7 @@
 #ifndef VULKAN_API_HPP
 #define VULKAN_API_HPP
 
-#include "core/GraphicsApi.hpp"
+#include "core/api/GraphicsApi.hpp"
 #include "utils/SparseVector.hpp"
 
 #include <vulkan/vulkan_core.h>

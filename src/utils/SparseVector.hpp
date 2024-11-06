@@ -25,6 +25,10 @@ public:
         _free.insert(index);
     }
 
+    size_t size(void) {
+        return _internal.size() - _free.size();
+    }
+
     T operator [](size_t i) const {
         if (i >= _internal.size() && _free.find(i) != _free.end()) {
             throw std::out_of_range("index is not allocated or out of range");

@@ -1,7 +1,7 @@
 #ifndef GLFW_API_HPP
 #define GLFW_API_HPP
 
-#include "core/WindowApi.hpp"
+#include "core/api/WindowApi.hpp"
 #include "utils/SparseVector.hpp"
 
 #include <vulkan/vulkan_core.h>

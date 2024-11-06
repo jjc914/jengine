@@ -5,6 +5,8 @@
 #include <set>
 #include <fstream>
 #include <string>
+#include <algorithm>
+#include <filesystem>
 
 #define VLK_ENABLE_VALIDATION_LAYERS
 
