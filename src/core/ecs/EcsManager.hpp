@@ -24,23 +24,25 @@ public:
     void add_components(Entity entity, Ts... components) {
         auto entry = _entity_registry.find(entity);
         if (entry == _entity_registry.end()) return;
+        
+        ComponentSet added_type{};
+        std::vector<Component> added_components_vector;
+        _create_component_vector(entity, added_type, added_components_vector, components...);
 
-        _create_component_vector(components...);
+        ComponentSet from_type = (*entry).second;
+        ComponentSet to_type = from_type;
+        to_type.component_types.insert(added_type.component_types.begin(), added_type.component_types.end());
 
-        // _archetype_registry[(*entry).second].remove_entity()
-        auto components_tuple = std::make_tuple(components...);
-        ComponentSet type{};
-        std::vector<Component> components_vector;
-        (void)std::initializer_list{
-            type.component_types.insert(std::type_index(typeid(Ts)))...
-        };
-
-        auto archetype_iter = _archetype_registry.find(type);
-        if (archetype_iter == _archetype_registry.end()) {
-            archetype_iter = _archetype_registry.emplace(type, Archetype(type)).first;
+        auto from_archetype_iter = _archetype_registry.find(from_type);
+        if (from_archetype_iter == _archetype_registry.end()) {
+            from_archetype_iter = _archetype_registry.emplace(from_type, Archetype(from_type)).first;
         }
-        Archetype& archetype = (*archetype_iter).second;
+        auto to_archetype_iter = _archetype_registry.find(to_type);
+        if (to_archetype_iter == _archetype_registry.end()) {
+            to_archetype_iter = _archetype_registry.emplace(to_type, Archetype(to_type)).first;
+        }
 
+        (*from_archetype_iter).second.move_entity(entity, (*to_archetype_iter).second);
         // archetype.add_entity(entity, )
 
         std::cout << "end" << std::endl;
@@ -56,18 +58,21 @@ private:
     static uint64_t _s_new_entity_id;
 
     template <typename T, typename... Ts>
-    void _create_component_vector(Entity& entity, std::vector<Component>& out, T component, Ts... components) {
-        Component component;
-        component.type = std::type_index(typeid(T));
-        component.data = &component;
-        out.emplace_back(&T);
+    void _create_component_vector(Entity& entity, ComponentSet& type, std::vector<Component>& out, T component, Ts... components) {
+        Component comp = { std::type_index(typeid(T)), component };
+        out.emplace_back(comp);
+
+        type.component_types.emplace(std::type_index(typeid(T)));
         
-        _create_component_vector(entity, out, components...);
+        _create_component_vector(entity, type, out, components...);
     }
 
     template <typename T>
-    void _create_component_vector(Entity& entity, std::vector<Component>& out, T component) {
+    void _create_component_vector(Entity& entity, ComponentSet& type, std::vector<Component>& out, T component) {
+        Component comp = { std::type_index(typeid(T)), component };
+        out.emplace_back(comp);
 
+        type.component_types.emplace(std::type_index(typeid(T)));
     }
 
     std::unordered_map<Entity, ComponentSet> _entity_registry;

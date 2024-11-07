@@ -10,7 +10,7 @@ EcsManager::EcsManager() : _entity_registry{}, _system_registry{}, _archetype_re
 Entity EcsManager::create_entity() {
     ComponentSet empty_set{};
     _entity_registry.emplace((Entity)_s_new_entity_id, empty_set);
-    _archetype_registry[empty_set].add_entity((Entity)_s_new_entity_id, nullptr, 0);
+    _archetype_registry[empty_set].add_entity((Entity)_s_new_entity_id, std::vector<Component>());
 
     return _s_new_entity_id++;
 }

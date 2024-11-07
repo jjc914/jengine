@@ -4,10 +4,11 @@
 #include <cstdint>
 #include <unordered_set>
 #include <typeindex>
+#include <any>
 
 struct Component {
     std::type_index type;
-    void* data;
+    std::any data;
 
     bool operator==(const Component& other) = delete;
 };

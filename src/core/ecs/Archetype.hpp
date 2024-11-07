@@ -9,10 +9,9 @@
 #include <typeindex>
 #include <unordered_map>
 #include <unordered_set>
-#include <vector>
+#include <array>
 #include <memory>
-
-typedef uint64_t ArchetypeType;
+#include <any>
 
 class Archetype {
 public:
@@ -21,11 +20,12 @@ public:
 
     ComponentSet components;
 
-    void add_entity(Entity entity, Component* components, int component_count);
+    void add_entity(Entity entity, std::vector<Component> components);
     void remove_entity(Entity entity);
+    void move_entity(Entity entity, Archetype& to);
 private:
     std::unordered_map<Entity, size_t> _entities;
-    std::unordered_map<std::type_index, SparseVector<std::unique_ptr<void>>> _components;
+    std::unordered_map<std::type_index, SparseVector<std::any>> _components;
     size_t _entity_count;
 };
 

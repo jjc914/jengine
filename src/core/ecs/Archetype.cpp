@@ -8,16 +8,16 @@ Archetype::Archetype(ComponentSet type) {
     components = type;
 }
 
-void Archetype::add_entity(Entity entity, Component* components, int component_count) {
-    if (component_count != this->components.component_types.size()) return;
+void Archetype::add_entity(Entity entity, std::vector<Component> components) {
+    if (components.size() != this->components.component_types.size()) return;
 
     auto entity_entry = _entities.emplace(entity, 0).first;
 
-    for (int i = 0; i < component_count; ++i) {
+    for (int i = 0; i < components.size(); ++i) {
         std::type_index& type = components[i].type;
         auto entry = _components.find(type);
         if (entry == _components.end()) {
-            entry = _components.emplace(type, SparseVector<void*>()).first;
+            entry = _components.emplace(type, SparseVector<std::any>()).first;
         }
         (*entity_entry).second = (*entry).second.emplace(components[i].data);
     }
@@ -36,4 +36,24 @@ void Archetype::remove_entity(Entity entity) {
     }
 
     --_entity_count;
+}
+
+void Archetype::move_entity(Entity entity, Archetype& to) {
+    auto entity_entry = _entities.find(entity);
+    if (entity_entry == _entities.end()) return;
+
+    if (to.components.component_types.empty()) {
+         std::cerr << "fix this" << std::endl;
+    } else {
+        auto to_entity = to._entities.emplace(entity, 0);
+
+        ComponentSet& from_type = components;
+        ComponentSet& to_type = to.components;
+        size_t index = (*entity_entry).second;
+        for (std::type_index component_type : from_type.component_types) {
+            (*entity_entry).second = to._components[component_type].emplace(_components[component_type].erase(index));
+        }
+
+        _entities.erase(entity_entry);
+    }
 }
