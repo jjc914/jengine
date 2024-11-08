@@ -46,7 +46,10 @@ public:
         Archetype& to_archetype = (*to_archetype_iter).second;
 
         from_archetype.move_entity(entity, to_archetype);
-        // archetype.add_entity(entity, )
+        size_t entity_index = (*to_archetype._entities.find(entity));
+        for (size_t i = 0; i < added_components_vector; ++i) {
+            to_archetype._components[added_components_vector[i].type].emplace(added_components_vector[i].data);
+        }
 
         std::cout << "end" << std::endl;
     }
