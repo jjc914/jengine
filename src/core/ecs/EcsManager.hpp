@@ -42,7 +42,10 @@ public:
             to_archetype_iter = _archetype_registry.emplace(to_type, Archetype(to_type)).first;
         }
 
-        (*from_archetype_iter).second.move_entity(entity, (*to_archetype_iter).second);
+        Archetype& from_archetype = (*from_archetype_iter).second;
+        Archetype& to_archetype = (*to_archetype_iter).second;
+
+        from_archetype.move_entity(entity, to_archetype);
         // archetype.add_entity(entity, )
 
         std::cout << "end" << std::endl;
