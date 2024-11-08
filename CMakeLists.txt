@@ -73,6 +73,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
     src/core/ecs/Archetype.hpp        src/core/ecs/Archetype.cpp
     src/core/ecs/EcsManager.hpp       src/core/ecs/EcsManager.cpp
     src/utils/SparseVector.hpp
+    src/utils/StructureLog.hpp
     src/renderer/vulkan/VulkanApi.hpp src/renderer/vulkan/VulkanApi.cpp
     src/window/glfw/GlfwApi.hpp       src/window/glfw/GlfwApi.cpp
     src/editor_ui/ImGuiLayer.hpp      src/editor_ui/ImGuiLayer.cpp

@@ -9,12 +9,11 @@
 
 #include <iostream>
 
-struct Position {
-    float x, y, z;
-};
-
-struct Rotation {
-    float x, y, z;
+struct PositionRotationSystem {
+    void operator()(Position p, Rotation r) {
+        std::cout << "p: " << p.x << ", " << p.y << ", " << p.z << '\n';
+        std::cout << "r: " << r.x << ", " << r.y << ", " << r.z << '\n';
+    }
 };
 
 void test_ecs() {
@@ -22,9 +21,11 @@ void test_ecs() {
 
     Entity entity_a = manager.create_entity();
     Entity entity_b = manager.create_entity();
-    manager.add_components<Position, Rotation>(entity_a, {5.0f, 2.0f, 4.0f}, {1.0f, 0.05f, 0.01f});
+    manager.add_components<Position, Rotation>(entity_a, Position{5.0f, 2.0f, 4.0f}, Rotation{1.0f, 0.05f, 0.01f});
+    manager.add_components<Position, Rotation>(entity_b, Position{2.0f, 1.0f, 3.0f}, Rotation{5.0f, 0.01f, 0.02f});
 
-    manager.delete_entity(entity_a);
+    manager.register_system<Position, Rotation>(PositionRotationSystem{});
+    manager.update();
 }
 
 int main(int argc, const char* argv[]) {
