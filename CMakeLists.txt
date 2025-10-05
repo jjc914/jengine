@@ -1,101 +1,48 @@
 cmake_minimum_required(VERSION 3.5)
 
-# Definitions
-set(PROJECT_NAME jengine)
-set(TEST_NAME test_jengine)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build/bin")
-set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON) 
+project(jengine LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project(${PROJECT_NAME})
+# Central output directory for all executables
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
-## Vendor dependencies
+add_subdirectory(lib/wulkan)
+add_subdirectory(lib/simple_ecs)
+
+add_executable(jengine 
+    src/main.cpp
+    src/core/app.hpp                               src/core/app.cpp
+    src/core/window/window.hpp
+    src/core/window/glfw_window.hpp                src/core/window/glfw_window.cpp
+    src/core/graphics/instance.hpp
+    src/core/graphics/device.hpp
+    src/core/graphics/renderer.hpp
+    src/core/graphics/pipeline.hpp
+    src/core/graphics/mesh_buffer.hpp
+    src/core/graphics/material.hpp
+    src/core/graphics/vertex_layout.hpp
+    src/core/graphics/vulkan/vk_instance.hpp       src/core/graphics/vulkan/vk_instance.cpp
+    src/core/graphics/vulkan/vk_device.hpp         src/core/graphics/vulkan/vk_device.cpp
+    src/core/graphics/vulkan/vk_renderer.hpp       src/core/graphics/vulkan/vk_renderer.cpp
+    src/core/graphics/vulkan/vk_pipeline.hpp       src/core/graphics/vulkan/vk_pipeline.cpp
+    src/core/graphics/vulkan/vk_mesh_buffer.hpp    src/core/graphics/vulkan/vk_mesh_buffer.cpp
+    src/core/graphics/vulkan/vk_material.hpp       src/core/graphics/vulkan/vk_material.cpp
+    src/utils/extent.hpp
+)
+
+target_compile_definitions(jengine PUBLIC WLK_ENABLE_VALIDATION_LAYERS)
+target_link_libraries(jengine PUBLIC wulkan simple_ecs)
+
+# ----------------
+# shader compilation
+# ----------------
 find_package(Vulkan REQUIRED)
-set(VULKAN_PATH ${Vulkan_INCLUDE_DIRS}/../)
-set(VULKAN_INCLUDE_DIRS ${VULKAN_PATH}/include)
-set(LIB_DEPENDENCIES ${LIB_DEPENDENCIES} Vulkan::Vulkan shaderc_shared)
-link_directories(${VULKAN_PATH}/lib)
 
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-add_subdirectory(vendor/glfw)
-
-# TODO: check to see if other things are building that are unnecessary
-set(GLM_TEST_ENABLE OFF CACHE BOOL "" FORCE)
-add_subdirectory(vendor/glm)
-set(LIB_DEPENDENCIES ${LIB_DEPENDENCIES} glm)
-
-find_package(OpenGL REQUIRED)
-set(LIB_DEPENDENCIES ${LIB_DEPENDENCIES} OpenGL::GL glfw)
-
-add_subdirectory(vendor/VulkanMemoryAllocator)
-set(LIB_DEPENDENCIES ${LIB_DEPENDENCIES} GPUOpen::VulkanMemoryAllocator)
-
-# -------------- IMGUI static library creation`
-#
-set(IMGUI_PATH ${CMAKE_CURRENT_LIST_DIR}/vendor/imgui)
-file(GLOB IMGUI_GLOB
-    ${IMGUI_PATH}/imgui.h
-    ${IMGUI_PATH}/imgui.cpp
-    ${IMGUI_PATH}/imconfig.h
-    ${IMGUI_PATH}/imgui_demo.cpp
-    ${IMGUI_PATH}/imgui_draw.cpp
-    ${IMGUI_PATH}/imgui_internal.h
-    ${IMGUI_PATH}/imstb_rectpack.h
-    ${IMGUI_PATH}/imstb_textedit.h
-    ${IMGUI_PATH}/imstb_truetype.h
-    ${IMGUI_PATH}/imgui_tables.cpp
-    ${IMGUI_PATH}/imgui_widgets.cpp
-
-    # specific bindings...
-    ${IMGUI_PATH}/backends/imgui_impl_glfw.h
-    ${IMGUI_PATH}/backends/imgui_impl_glfw.cpp
-    ${IMGUI_PATH}/backends/imgui_impl_vulkan.h
-    ${IMGUI_PATH}/backends/imgui_impl_vulkan.cpp)
-add_library(imgui STATIC ${IMGUI_GLOB})
-target_include_directories(imgui PUBLIC ${IMGUI_PATH})
-target_include_directories(imgui PUBLIC ${IMGUI_PATH}/backends)
-target_link_libraries(imgui PRIVATE glfw)
-target_link_libraries(imgui PRIVATE Vulkan::Vulkan)
-set(LIB_DEPENDENCIES ${LIB_DEPENDENCIES} imgui)
-# ----------------------------------------------------------------------
-
-## Sources
-set(SOURCE_FILES ${SOURCE_FILES}
-    src/core/api/GraphicsApi.hpp
-    src/core/api/InputApi.hpp
-    src/core/api/WindowApi.hpp
-    src/core/ecs/Entity.hpp
-    src/core/ecs/Component.hpp        src/core/ecs/Component.cpp
-    src/core/ecs/System.hpp
-    src/core/ecs/Archetype.hpp        src/core/ecs/Archetype.cpp
-    src/core/ecs/EcsManager.hpp       src/core/ecs/EcsManager.cpp
-    src/utils/SparseVector.hpp
-    src/utils/StructureLog.hpp
-    src/renderer/vulkan/VulkanApi.hpp src/renderer/vulkan/VulkanApi.cpp
-    src/window/glfw/GlfwApi.hpp       src/window/glfw/GlfwApi.cpp
-    src/editor_ui/ImGuiLayer.hpp      src/editor_ui/ImGuiLayer.cpp
-)
-
-set(SOURCE_FILES ${SOURCE_FILES} src/main.cpp)
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-
-target_include_directories(${PROJECT_NAME} PUBLIC src)
-
-target_link_libraries(${PROJECT_NAME} ${LIB_DEPENDENCIES})
-target_link_libraries(${PROJECT_NAME} ${SRC_DEPENDENCIES})
-
-add_subdirectory(test)
-
-target_include_directories(${PROJECT_NAME} PUBLIC ${VULKAN_INCLUDE_DIRS})
-
-## Compile shaders (https://gist.github.com/evilactually/a0d191701cb48f157b05be7f74d79396)
+get_filename_component(VULKAN_PATH ${Vulkan_INCLUDE_DIRS} DIRECTORY)
 set(GLSL_VALIDATOR ${VULKAN_PATH}/bin/glslangValidator)
-file(GLOB_RECURSE GLSL_SOURCE_FILES
-    src/renderer/vulkan/shaders/*.vert src/renderer/vulkan/shaders/*.frag
-)
+
+file(GLOB_RECURSE GLSL_SOURCE_FILES "shaders/*.vert" "shaders/*.frag")
 
 foreach(GLSL ${GLSL_SOURCE_FILES})
     get_filename_component(FILE_NAME ${GLSL} NAME)
@@ -104,20 +51,17 @@ foreach(GLSL ${GLSL_SOURCE_FILES})
         OUTPUT ${SPIRV}
         COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/shaders/"
         COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV}
-        DEPENDS ${GLSL})
+        DEPENDS ${GLSL}
+    )
     list(APPEND SPIRV_BINARY_FILES ${SPIRV})
-endforeach(GLSL)
+endforeach()
 
-add_custom_target(
-    Shaders
-    DEPENDS ${SPIRV_BINARY_FILES}
-)
+add_custom_target(jengineshaders DEPENDS ${SPIRV_BINARY_FILES})
+add_dependencies(jengine jengineshaders)
 
-add_dependencies(${PROJECT_NAME} Shaders)
-
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders/"
+add_custom_command(TARGET jengine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:jengine>/shaders/"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${PROJECT_BINARY_DIR}/shaders"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders"
+        "$<TARGET_FILE_DIR:jengine>/shaders"
 )
