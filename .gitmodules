@@ -19,3 +19,9 @@
 [submodule "lib/wulkan"]
 	path = lib/wulkan
 	url = https://github.com/jjc914/wulkan.git
+[submodule "vendor/tinyobjloader"]
+	path = vendor/tinyobjloader
+	url = https://github.com/tinyobjloader/tinyobjloader.git
+[submodule "vendor/imgui"]
+	path = vendor/imgui
+	url = https://github.com/ocornut/imgui.git

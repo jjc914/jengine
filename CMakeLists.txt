@@ -10,6 +10,20 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 add_subdirectory(lib/wulkan)
 add_subdirectory(lib/simple_ecs)
 
+# tinyobjloader
+add_library(tinyobjloader STATIC vendor/tinyobjloader/tiny_obj_loader.cc)
+target_include_directories(tinyobjloader PUBLIC vendor/tinyobjloader)
+
+# dear imgui
+file(GLOB IMGUI_SOURCES
+    vendor/imgui/*.cpp
+    vendor/imgui/backends/imgui_impl_glfw.cpp
+    vendor/imgui/backends/imgui_impl_opengl3.cpp
+)
+add_library(imgui STATIC ${IMGUI_SOURCES})
+target_include_directories(imgui PUBLIC ${CMAKE_SOURCE_DIR}/vendor/glfw/include)
+target_include_directories(imgui PUBLIC vendor/imgui vendor/imgui/backends)
+
 add_executable(jengine 
     src/main.cpp
     src/app.hpp                              src/app.cpp
@@ -32,7 +46,10 @@ add_executable(jengine
 )
 
 target_compile_definitions(jengine PUBLIC WLK_ENABLE_VALIDATION_LAYERS)
-target_link_libraries(jengine PUBLIC wulkan simple_ecs)
+target_link_libraries(jengine PUBLIC 
+    wulkan simple_ecs
+    tinyobjloader imgui
+)
 target_include_directories(jengine PUBLIC src)
 
 # ----------------
