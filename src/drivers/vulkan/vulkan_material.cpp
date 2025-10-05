@@ -1,8 +1,9 @@
-#include "vk_material.hpp"
+#include "vulkan_material.hpp"
+#include "vulkan_pipeline.hpp"
 
 #include <cstring>
 
-namespace core::graphics::vulkan {
+namespace drivers::vulkan {
 
 VulkanMaterial::VulkanMaterial(
     const VulkanPipeline& pipeline,
@@ -77,4 +78,4 @@ void VulkanMaterial::bind(void* command_buffer) const {
     );
 }
 
-} // namespace core::graphics::vulkan
+} // namespace drivers::vulkan

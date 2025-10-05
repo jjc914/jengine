@@ -1,18 +1,19 @@
-#ifndef CORE_GRAPHICS_VULKAN_RENDERER_HPP
-#define CORE_GRAPHICS_VULKAN_RENDERER_HPP
+#ifndef DRIVERS_VULKAN_VULKAN_RENDERER_HPP
+#define DRIVERS_VULKAN_VULKAN_RENDERER_HPP
 
-#include "../renderer.hpp"
-#include "../pipeline.hpp"
-#include "../vertex_layout.hpp"
-#include "vk_device.hpp"
+#include "core/graphics/renderer.hpp"
+#include "core/graphics/pipeline.hpp"
+#include "core/graphics/vertex_layout.hpp"
 
 #include <wk/wulkan.hpp>
 #include <wk/ext/glfw/surface.hpp>
 #include <vector>
 
-namespace core::graphics::vulkan {
+namespace drivers::vulkan {
 
-class VulkanRenderer : public Renderer {
+class VulkanDevice;
+
+class VulkanRenderer : public core::graphics::Renderer {
 public:
     VulkanRenderer(const VulkanDevice& device, const wk::ext::glfw::Surface& surface, uint32_t width, uint32_t height);
     ~VulkanRenderer() override = default;
@@ -22,7 +23,7 @@ public:
     void end_frame() override;
     void resize(uint32_t width, uint32_t height) override;
 
-    std::unique_ptr<Pipeline> create_pipeline(const VertexLayout& layout) const override;
+    std::unique_ptr<core::graphics::Pipeline> create_pipeline(const core::graphics::VertexLayout& layout) const override;
 
     const wk::RenderPass& render_pass() const { return _render_pass; }
     const wk::DescriptorPool& descriptor_pool() const { return _descriptor_pool; }
@@ -69,6 +70,6 @@ private:
     };
 };
 
-} // namespace core::graphics::vulkan
+} // namespace drivers::vulkan
 
-#endif // CORE_GRAPHICS_VULKAN_RENDERER_HPP
+#endif // DRIVERS_VULKAN_VULKAN_RENDERER_HPP

@@ -1,14 +1,15 @@
-#ifndef CORE_GRAPHICS_VULKAN_MESH_BUFFER_HPP
-#define CORE_GRAPHICS_VULKAN_MESH_BUFFER_HPP
+#ifndef DRIVERS_VULKAN_VULKAN_MESH_BUFFER_HPP
+#define DRIVERS_VULKAN_VULKAN_MESH_BUFFER_HPP
 
-#include "../mesh_buffer.hpp"
+#include "core/graphics/mesh_buffer.hpp"
 
-#include "vk_device.hpp"
 #include <wk/wulkan.hpp>
 
-namespace core::graphics::vulkan {
+namespace drivers::vulkan {
 
-class VulkanMeshBuffer : public MeshBuffer {
+class VulkanDevice;
+
+class VulkanMeshBuffer : public core::graphics::MeshBuffer {
 public:
     VulkanMeshBuffer(const VulkanDevice& device,
                      const void* vertex_data, uint32_t vertex_size, uint32_t vertex_count,
@@ -36,6 +37,6 @@ private:
     VkIndexType _index_type;
 };
 
-} // namespace core::graphics::vulkan
+} // namespace drivers::vulkan
 
-#endif // CORE_GRAPHICS_VULKAN_MESH_BUFFER_HPP
+#endif // DRIVERS_VULKAN_VULKAN_MESH_BUFFER_HPP

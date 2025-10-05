@@ -1,9 +1,10 @@
-#include "vk_device.hpp"
+#include "vulkan_device.hpp"
 
-#include "vk_renderer.hpp"
-#include "vk_mesh_buffer.hpp"
+#include "vulkan_instance.hpp"
+#include "vulkan_renderer.hpp"
+#include "vulkan_mesh_buffer.hpp"
 
-namespace core::graphics::vulkan {
+namespace drivers::vulkan {
 
 VulkanDevice::VulkanDevice(const VulkanInstance& instance, const wk::ext::glfw::Surface& surface) {
     // ---------- device ----------
@@ -89,14 +90,14 @@ void VulkanDevice::wait_idle() {
     vkDeviceWaitIdle(_device.handle());
 }
 
-std::unique_ptr<Renderer> VulkanDevice::create_renderer(void* surface, uint32_t width, uint32_t height) const {
+std::unique_ptr<core::graphics::Renderer> VulkanDevice::create_renderer(void* surface, uint32_t width, uint32_t height) const {
     return std::make_unique<VulkanRenderer>(
         *this, *static_cast<wk::ext::glfw::Surface*>(surface),
         width, height
     );
 }
 
-std::unique_ptr<MeshBuffer> VulkanDevice::create_mesh_buffer(
+std::unique_ptr<core::graphics::MeshBuffer> VulkanDevice::create_mesh_buffer(
     const void* vertex_data, uint32_t vertex_size, uint32_t vertex_count,
     const void* index_data, uint32_t index_size, uint32_t index_count) const 
 {

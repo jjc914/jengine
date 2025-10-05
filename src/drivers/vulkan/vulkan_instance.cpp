@@ -1,8 +1,8 @@
-#include "vk_instance.hpp"
+#include "vulkan_instance.hpp"
 
-#include "vk_device.hpp"
+#include "vulkan_device.hpp"
 
-namespace core::graphics::vulkan {
+namespace drivers::vulkan {
 
 VulkanInstance::VulkanInstance() {
 #ifdef WLK_ENABLE_VALIDATION_LAYERS
@@ -50,7 +50,7 @@ VulkanInstance::VulkanInstance() {
 #endif
 }
 
-std::unique_ptr<Device> VulkanInstance::create_device(void* p_surface) const {
+std::unique_ptr<core::graphics::Device> VulkanInstance::create_device(void* p_surface) const {
     return std::make_unique<VulkanDevice>(*this, *static_cast<wk::ext::glfw::Surface*>(p_surface));
 }
 

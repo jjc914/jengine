@@ -1,36 +1,36 @@
-#include "vk_pipeline.hpp"
+#include "vulkan_pipeline.hpp"
+#include "vulkan_renderer.hpp"
+#include "vulkan_material.hpp"
 
-#include "vk_material.hpp"
-
-namespace core::graphics::vulkan {
+namespace drivers::vulkan {
 
 static VkFormat ToVkFormat(core::graphics::VertexFormat format) {
     switch (format) {
-        case VertexFormat::R32_FLOAT:      return VK_FORMAT_R32_SFLOAT;
-        case VertexFormat::RG32_FLOAT:     return VK_FORMAT_R32G32_SFLOAT;
-        case VertexFormat::RGB32_FLOAT:    return VK_FORMAT_R32G32B32_SFLOAT;
-        case VertexFormat::RGBA32_FLOAT:   return VK_FORMAT_R32G32B32A32_SFLOAT;
+        case core::graphics::VertexFormat::R32_FLOAT:      return VK_FORMAT_R32_SFLOAT;
+        case core::graphics::VertexFormat::RG32_FLOAT:     return VK_FORMAT_R32G32_SFLOAT;
+        case core::graphics::VertexFormat::RGB32_FLOAT:    return VK_FORMAT_R32G32B32_SFLOAT;
+        case core::graphics::VertexFormat::RGBA32_FLOAT:   return VK_FORMAT_R32G32B32A32_SFLOAT;
 
-        case VertexFormat::R8_UNORM:       return VK_FORMAT_R8_UNORM;
-        case VertexFormat::RG8_UNORM:      return VK_FORMAT_R8G8_UNORM;
-        case VertexFormat::RGB8_UNORM:     return VK_FORMAT_R8G8B8_UNORM;
-        case VertexFormat::RGBA8_UNORM:    return VK_FORMAT_R8G8B8A8_UNORM;
+        case core::graphics::VertexFormat::R8_UNORM:       return VK_FORMAT_R8_UNORM;
+        case core::graphics::VertexFormat::RG8_UNORM:      return VK_FORMAT_R8G8_UNORM;
+        case core::graphics::VertexFormat::RGB8_UNORM:     return VK_FORMAT_R8G8B8_UNORM;
+        case core::graphics::VertexFormat::RGBA8_UNORM:    return VK_FORMAT_R8G8B8A8_UNORM;
 
-        case VertexFormat::R16_FLOAT:      return VK_FORMAT_R16_SFLOAT;
-        case VertexFormat::RG16_FLOAT:     return VK_FORMAT_R16G16_SFLOAT;
-        case VertexFormat::RGB16_FLOAT:    return VK_FORMAT_R16G16B16_SFLOAT;
-        case VertexFormat::RGBA16_FLOAT:   return VK_FORMAT_R16G16B16A16_SFLOAT;
+        case core::graphics::VertexFormat::R16_FLOAT:      return VK_FORMAT_R16_SFLOAT;
+        case core::graphics::VertexFormat::RG16_FLOAT:     return VK_FORMAT_R16G16_SFLOAT;
+        case core::graphics::VertexFormat::RGB16_FLOAT:    return VK_FORMAT_R16G16B16_SFLOAT;
+        case core::graphics::VertexFormat::RGBA16_FLOAT:   return VK_FORMAT_R16G16B16A16_SFLOAT;
 
-        case VertexFormat::R32_UINT:       return VK_FORMAT_R32_UINT;
-        case VertexFormat::RG32_UINT:      return VK_FORMAT_R32G32_UINT;
-        case VertexFormat::RGB32_UINT:     return VK_FORMAT_R32G32B32_UINT;
-        case VertexFormat::RGBA32_UINT:    return VK_FORMAT_R32G32B32A32_UINT;
+        case core::graphics::VertexFormat::R32_UINT:       return VK_FORMAT_R32_UINT;
+        case core::graphics::VertexFormat::RG32_UINT:      return VK_FORMAT_R32G32_UINT;
+        case core::graphics::VertexFormat::RGB32_UINT:     return VK_FORMAT_R32G32B32_UINT;
+        case core::graphics::VertexFormat::RGBA32_UINT:    return VK_FORMAT_R32G32B32A32_UINT;
 
         default:                           return VK_FORMAT_UNDEFINED;
     }
 }
 
-VulkanPipeline::VulkanPipeline(const VulkanRenderer& renderer, const wk::Device& device, const VertexLayout& layout)
+VulkanPipeline::VulkanPipeline(const VulkanRenderer& renderer, const wk::Device& device, const core::graphics::VertexLayout& layout)
     : _device(device), _render_pass(renderer.render_pass()),
       _allocator(renderer.allocator()), _descriptor_pool(renderer.descriptor_pool())
 {
@@ -209,7 +209,7 @@ void VulkanPipeline::bind(void* command_buffer) const {
     vkCmdBindPipeline(static_cast<VkCommandBuffer>(command_buffer), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline.handle());
 }
 
-std::unique_ptr<Material> VulkanPipeline::create_material(uint32_t uniform_buffer_size) const {
+std::unique_ptr<core::graphics::Material> VulkanPipeline::create_material(uint32_t uniform_buffer_size) const {
     return std::make_unique<VulkanMaterial>(
         *this,
         _device, _allocator, _descriptor_pool, _descriptor_set_layout,
@@ -217,4 +217,4 @@ std::unique_ptr<Material> VulkanPipeline::create_material(uint32_t uniform_buffe
     );
 }
 
-} // namespace core::graphics::vulkan
+} // namespace drivers::vulkan

@@ -1,14 +1,14 @@
-#ifndef CORE_GRAPHICS_VULKAN_MATERIAL_HPP
-#define CORE_GRAPHICS_VULKAN_MATERIAL_HPP
+#ifndef DRIVERS_VULKAN_VULKAN_MATERIAL_HPP
+#define DRIVERS_VULKAN_VULKAN_MATERIAL_HPP
 
-#include "../material.hpp"
-#include "vk_device.hpp"
-#include "vk_pipeline.hpp"
+#include "core/graphics/material.hpp"
 
 #include <wk/wulkan.hpp>
 #include <string>
 
-namespace core::graphics::vulkan {
+namespace drivers::vulkan {
+
+class VulkanPipeline;
 
 class VulkanMaterial final : public core::graphics::Material {
 public:
@@ -40,6 +40,6 @@ private:
     uint32_t _uniform_buffer_size;
 };
 
-} // namespace core::graphics::vulkan
+} // namespace drivers::vulkan
 
-#endif // CORE_GRAPHICS_VULKAN_MATERIAL_HPP
+#endif // DRIVERS_VULKAN_VULKAN_MATERIAL_HPP

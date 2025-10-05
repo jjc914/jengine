@@ -12,9 +12,10 @@ add_subdirectory(lib/simple_ecs)
 
 add_executable(jengine 
     src/main.cpp
-    src/core/app.hpp                               src/core/app.cpp
+    src/app.hpp                              src/app.cpp
+    src/core/debug/logger.hpp
     src/core/window/window.hpp
-    src/core/window/glfw_window.hpp                src/core/window/glfw_window.cpp
+    src/core/window/glfw_window.hpp          src/core/window/glfw_window.cpp
     src/core/graphics/instance.hpp
     src/core/graphics/device.hpp
     src/core/graphics/renderer.hpp
@@ -22,17 +23,17 @@ add_executable(jengine
     src/core/graphics/mesh_buffer.hpp
     src/core/graphics/material.hpp
     src/core/graphics/vertex_layout.hpp
-    src/core/graphics/vulkan/vk_instance.hpp       src/core/graphics/vulkan/vk_instance.cpp
-    src/core/graphics/vulkan/vk_device.hpp         src/core/graphics/vulkan/vk_device.cpp
-    src/core/graphics/vulkan/vk_renderer.hpp       src/core/graphics/vulkan/vk_renderer.cpp
-    src/core/graphics/vulkan/vk_pipeline.hpp       src/core/graphics/vulkan/vk_pipeline.cpp
-    src/core/graphics/vulkan/vk_mesh_buffer.hpp    src/core/graphics/vulkan/vk_mesh_buffer.cpp
-    src/core/graphics/vulkan/vk_material.hpp       src/core/graphics/vulkan/vk_material.cpp
-    src/utils/extent.hpp
+    src/drivers/vulkan/vulkan_instance.hpp       src/drivers/vulkan/vulkan_instance.cpp
+    src/drivers/vulkan/vulkan_device.hpp         src/drivers/vulkan/vulkan_device.cpp
+    src/drivers/vulkan/vulkan_renderer.hpp       src/drivers/vulkan/vulkan_renderer.cpp
+    src/drivers/vulkan/vulkan_pipeline.hpp       src/drivers/vulkan/vulkan_pipeline.cpp
+    src/drivers/vulkan/vulkan_mesh_buffer.hpp    src/drivers/vulkan/vulkan_mesh_buffer.cpp
+    src/drivers/vulkan/vulkan_material.hpp       src/drivers/vulkan/vulkan_material.cpp
 )
 
 target_compile_definitions(jengine PUBLIC WLK_ENABLE_VALIDATION_LAYERS)
 target_link_libraries(jengine PUBLIC wulkan simple_ecs)
+target_include_directories(jengine PUBLIC src)
 
 # ----------------
 # shader compilation

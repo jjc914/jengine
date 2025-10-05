@@ -1,8 +1,9 @@
 #include "app.hpp"
 
-#include "graphics/vertex_layout.hpp"
-#include "graphics/vulkan/vk_instance.hpp"
-#include "window/glfw_window.hpp"
+#include "drivers/vulkan/vulkan_instance.hpp"
+
+#include "core/graphics/vertex_layout.hpp"
+#include "core/window/glfw_window.hpp"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
@@ -27,7 +28,7 @@ int App::run() {
     }
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    _instance = std::make_unique<graphics::vulkan::VulkanInstance>();
+    _instance = std::make_unique<drivers::vulkan::VulkanInstance>();
     _window = std::make_unique<window::glfw::GlfwWindow>(_instance->native_handle(), "jengine", width, height);
     _surface = wk::ext::glfw::Surface(
         static_cast<VkInstance>(_instance->native_handle()),

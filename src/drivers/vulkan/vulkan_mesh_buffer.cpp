@@ -1,7 +1,9 @@
-#include "vk_mesh_buffer.hpp"
+#include "vulkan_mesh_buffer.hpp"
+#include "vulkan_device.hpp"
+
 #include <cstring>
 
-namespace core::graphics::vulkan {
+namespace drivers::vulkan {
 
 VulkanMeshBuffer::VulkanMeshBuffer(
     const VulkanDevice& device,

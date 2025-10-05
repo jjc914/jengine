@@ -1,13 +1,13 @@
-#include "vk_renderer.hpp"
-
-#include "vk_pipeline.hpp"
+#include "vulkan_renderer.hpp"
+#include "vulkan_device.hpp"
+#include "vulkan_pipeline.hpp"
 
 #include <wk/ext/glfw/surface.hpp>
 
 #include <algorithm>
 #include <iostream>
 
-namespace core::graphics::vulkan {
+namespace drivers::vulkan {
 
 VulkanRenderer::VulkanRenderer(const VulkanDevice& device, const wk::ext::glfw::Surface& surface, uint32_t width, uint32_t height)
     : _physical_device(device.physical_device()), _device(device.device()),
@@ -409,10 +409,10 @@ void VulkanRenderer::rebuild() {
     }
 }
 
-std::unique_ptr<Pipeline> VulkanRenderer::create_pipeline(const VertexLayout& layout) const {
+std::unique_ptr<core::graphics::Pipeline> VulkanRenderer::create_pipeline(const core::graphics::VertexLayout& layout) const {
     return std::make_unique<VulkanPipeline>(
         *this, _device, layout
     );
 };
 
-} // core::graphics::vulkan
+} // drivers::vulkan

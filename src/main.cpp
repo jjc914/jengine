@@ -1,9 +1,12 @@
 #include <iostream>
 
-#include "core/app.hpp"
+#include "app.hpp"
+#include "core/debug/logger.hpp"
 
 int main() {
     core::App app;
+    core::debug::Logger::get_singleton();
+
     int return_code = app.run();
-    std::cout << "app finished with value " << return_code << std::endl;
+    core::debug::Logger::get_singleton().info("app finished with value {}", return_code);
 }

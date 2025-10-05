@@ -1,28 +1,28 @@
-#ifndef CORE_GRAPHICS_VULKAN_DEVICE_HPP
-#define CORE_GRAPHICS_VULKAN_DEVICE_HPP
+#ifndef DRIVERS_VULKAN_VULKAN_DEVICE_HPP
+#define DRIVERS_VULKAN_VULKAN_DEVICE_HPP
 
-#include "../device.hpp"
-#include "../instance.hpp"
-#include "../renderer.hpp"
-#include "../mesh_buffer.hpp"
-
-#include "vk_instance.hpp"
+#include "core/graphics/device.hpp"
+#include "core/graphics/instance.hpp"
+#include "core/graphics/renderer.hpp"
+#include "core/graphics/mesh_buffer.hpp"
 
 #include <wk/wulkan.hpp>
 #include <wk/ext/glfw/surface.hpp>
 
-namespace core::graphics::vulkan {
+namespace drivers::vulkan {
 
-class VulkanDevice final : public Device {
+class VulkanInstance;
+
+class VulkanDevice final : public core::graphics::Device {
 public:
     VulkanDevice(const VulkanInstance& instance, const wk::ext::glfw::Surface& surface);
     ~VulkanDevice() override = default;
 
     void wait_idle() override;
 
-    std::unique_ptr<Renderer> create_renderer(uint32_t width, uint32_t height) const override { return nullptr; } // TODO: implement this
-    std::unique_ptr<Renderer> create_renderer(void* surface, uint32_t width, uint32_t height) const override;
-    std::unique_ptr<MeshBuffer> create_mesh_buffer(
+    std::unique_ptr<core::graphics::Renderer> create_renderer(uint32_t width, uint32_t height) const override { return nullptr; } // TODO: implement this
+    std::unique_ptr<core::graphics::Renderer> create_renderer(void* surface, uint32_t width, uint32_t height) const override;
+    std::unique_ptr<core::graphics::MeshBuffer> create_mesh_buffer(
         const void* vertex_data, uint32_t vertex_size, uint32_t vertex_count,
         const void* index_data, uint32_t index_size, uint32_t index_count) const override;
 
@@ -49,6 +49,6 @@ private:
     wk::DescriptorPool _descriptor_pool;
 };
 
-} // namespace core::graphics::vulkan
+} // namespace drivers::vulkan
 
-#endif // CORE_GRAPHICS_VULKAN_RENDER_TARGET_HPP
+#endif // DRIVERS_VULKAN_VULKAN_RENDER_TARGET_HPP

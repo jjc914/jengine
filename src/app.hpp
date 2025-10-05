@@ -1,13 +1,13 @@
 #ifndef APP_HPP
 #define APP_HPP
 
-#include "graphics/instance.hpp"
-#include "graphics/device.hpp"
-#include "graphics/renderer.hpp"
-#include "graphics/pipeline.hpp"
-#include "graphics/mesh_buffer.hpp"
-#include "graphics/material.hpp"
-#include "window/window.hpp"
+#include "core/graphics/instance.hpp"
+#include "core/graphics/device.hpp"
+#include "core/graphics/renderer.hpp"
+#include "core/graphics/pipeline.hpp"
+#include "core/graphics/mesh_buffer.hpp"
+#include "core/graphics/material.hpp"
+#include "core/window/window.hpp"
 
 #include <wk/wulkan.hpp>
 #include <wk/ext/glfw/glfw_internal.hpp>
