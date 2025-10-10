@@ -11,7 +11,9 @@
 
 # jengine
 ## general
+- [ ] test macos support
 - [ ] add github action test units
+- [ ] add ray tracing support
 - [ ] add physics library integration
 
 ## engine
