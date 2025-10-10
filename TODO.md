@@ -3,6 +3,7 @@
 - [ ] fix type conversion warnings (`static_cast<...>`)
 - [ ] fix examples and clean up provided functions
 - [ ] add github action test units
+- [ ] add generated docs
 
 # simple ecs
 - [ ] implement archetype graph-based ecs
