@@ -13,6 +13,11 @@ VulkanShader::VulkanShader(const VulkanDevice& device, core::graphics::ShaderSta
     : _stage(stage)
 {
     std::vector<uint8_t> bin = wk::ReadSpirvShader(filepath.c_str());
+
+    if (bin.empty()) {
+        core::debug::Logger::get_singleton().error("Failed to open SPV file {}", filepath);
+    }
+
     _module = wk::ShaderModule(device.device().handle(),
         wk::ShaderModuleCreateInfo{}
             .set_byte_code(bin.size(), reinterpret_cast<const uint32_t*>(bin.data()))

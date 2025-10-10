@@ -3,8 +3,6 @@
 namespace import {
 
 ObjModel ReadObj(const std::string& filepath) {
-    engine::core::debug::Logger::get_singleton().info("Loading OBJ file {}", filepath);
-
     tinyobj::ObjReaderConfig config;
     config.triangulate = true;
     config.vertex_color = false;
@@ -62,8 +60,6 @@ ObjModel ReadObj(const std::string& filepath) {
 
         model.meshes.push_back(std::move(mesh));
     }
-
-    engine::core::debug::Logger::get_singleton().info("Loaded OBJ model with {} mesh(es)", std::to_string(model.meshes.size()));
 
     return model;
 }
