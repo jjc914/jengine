@@ -1,0 +1,52 @@
+#ifndef engine_drivers_vulkan_VULKAN_VIEWPORT_HPP
+#define engine_drivers_vulkan_VULKAN_VIEWPORT_HPP
+
+#include "vulkan_render_target.hpp"
+
+#include "engine/core/graphics/pipeline.hpp"
+#include "engine/core/window/window.hpp"
+
+#include <wk/ext/glfw/surface.hpp>
+
+namespace engine::drivers::vulkan {
+
+class VulkanDevice;
+
+class VulkanViewport final : public VulkanRenderTarget {
+public:
+    VulkanViewport(
+        const VulkanDevice& device,
+        const core::window::Window& window,
+        const core::graphics::Pipeline& render_pass,
+        uint32_t width,
+        uint32_t height,
+        uint32_t max_in_flight = 1
+    );
+    ~VulkanViewport() = default;
+
+    void* begin_frame(const core::graphics::Pipeline& pipeline) override;
+    void submit_draws(uint32_t index_count) override;
+    void end_frame() override;
+    
+    std::string backend_name() const override { return "Vulkan"; }
+
+private:
+    void rebuild();
+
+    const wk::ext::glfw::Surface& _surface;
+    const wk::PhysicalDevice& _physical_device;
+    const wk::Allocator& _allocator;
+    const wk::CommandPool& _command_pool;
+    const wk::DescriptorPool& _descriptor_pool;
+    const wk::Queue& _graphics_queue;
+
+    wk::Swapchain _swapchain;
+    wk::Queue _present_queue;
+
+    uint32_t _current_frame;
+    uint32_t _available_image_index;
+};
+
+} // namespace engine::drivers::vulkan
+
+#endif // engine_drivers_vulkan_VULKAN_VIEWPORT_HPP

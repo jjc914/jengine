@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(jengine LANGUAGES CXX)
+project(editor LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Central output directory for all executables
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 add_subdirectory(lib/wulkan)
@@ -24,62 +23,111 @@ add_library(imgui STATIC ${IMGUI_SOURCES})
 target_include_directories(imgui PUBLIC ${CMAKE_SOURCE_DIR}/vendor/glfw/include)
 target_include_directories(imgui PUBLIC vendor/imgui vendor/imgui/backends)
 
-add_executable(jengine 
-    src/main.cpp
-    src/app.hpp                              src/app.cpp
-    src/core/debug/logger.hpp
-    src/core/window/window.hpp
-    src/core/window/glfw_window.hpp          src/core/window/glfw_window.cpp
-    src/core/graphics/instance.hpp
-    src/core/graphics/device.hpp
-    src/core/graphics/renderer.hpp
-    src/core/graphics/pipeline.hpp
-    src/core/graphics/mesh_buffer.hpp
-    src/core/graphics/material.hpp
-    src/core/graphics/vertex_layout.hpp
-    src/drivers/vulkan/vulkan_instance.hpp       src/drivers/vulkan/vulkan_instance.cpp
-    src/drivers/vulkan/vulkan_device.hpp         src/drivers/vulkan/vulkan_device.cpp
-    src/drivers/vulkan/vulkan_renderer.hpp       src/drivers/vulkan/vulkan_renderer.cpp
-    src/drivers/vulkan/vulkan_pipeline.hpp       src/drivers/vulkan/vulkan_pipeline.cpp
-    src/drivers/vulkan/vulkan_mesh_buffer.hpp    src/drivers/vulkan/vulkan_mesh_buffer.cpp
-    src/drivers/vulkan/vulkan_material.hpp       src/drivers/vulkan/vulkan_material.cpp
+# glm
+include_directories(vendor/glm)
+
+# engine library
+add_library(engine STATIC)
+target_compile_definitions(engine PUBLIC WLK_ENABLE_VALIDATION_LAYERS)
+target_include_directories(engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_sources(engine PRIVATE
+    engine/core/debug/logger.hpp
+
+    engine/core/window/window.hpp
+
+    engine/core/graphics/descriptor_set_layout.hpp
+    engine/core/graphics/descriptor_types.hpp
+    engine/core/graphics/device.hpp
+    engine/core/graphics/frame_graph.hpp
+    engine/core/graphics/image_types.hpp
+    engine/core/graphics/instance.hpp
+    engine/core/graphics/material.hpp
+    engine/core/graphics/mesh_buffer.hpp
+    engine/core/graphics/pipeline.hpp
+    engine/core/graphics/render_target.hpp
+    engine/core/graphics/shader.hpp
+    engine/core/graphics/vertex_types.hpp
+
+    engine/import/mesh.hpp   engine/import/mesh.cpp
+
+    engine/drivers/vulkan/convert_vulkan.hpp
+    engine/drivers/vulkan/vulkan_descriptor_set_layout.hpp  engine/drivers/vulkan/vulkan_descriptor_set_layout.cpp
+    engine/drivers/vulkan/vulkan_device.hpp                 engine/drivers/vulkan/vulkan_device.cpp
+    engine/drivers/vulkan/vulkan_instance.hpp               engine/drivers/vulkan/vulkan_instance.cpp
+    engine/drivers/vulkan/vulkan_material.hpp               engine/drivers/vulkan/vulkan_material.cpp
+    engine/drivers/vulkan/vulkan_mesh_buffer.hpp            engine/drivers/vulkan/vulkan_mesh_buffer.cpp
+    engine/drivers/vulkan/vulkan_pipeline.hpp               engine/drivers/vulkan/vulkan_pipeline.cpp
+    engine/drivers/vulkan/vulkan_render_target.hpp
+    engine/drivers/vulkan/vulkan_shader.hpp                 engine/drivers/vulkan/vulkan_shader.cpp
+    # engine/drivers/vulkan/vulkan_texture_render_target.hpp  engine/drivers/vulkan/vulkan_texture_render_target.cpp
+    engine/drivers/vulkan/vulkan_viewport.hpp               engine/drivers/vulkan/vulkan_viewport.cpp
+
+    engine/drivers/glfw/glfw_window.hpp       engine/drivers/glfw/glfw_window.cpp
+)
+target_link_libraries(engine PUBLIC wulkan simple_ecs tinyobjloader)
+
+add_executable(editor 
+    editor/main.cpp
+    editor/app.hpp editor/app.cpp 
 )
 
-target_compile_definitions(jengine PUBLIC WLK_ENABLE_VALIDATION_LAYERS)
-target_link_libraries(jengine PUBLIC 
-    wulkan simple_ecs
-    tinyobjloader imgui
-)
-target_include_directories(jengine PUBLIC src)
+target_compile_definitions(editor PUBLIC WLK_ENABLE_VALIDATION_LAYERS)
+target_link_libraries(editor PRIVATE imgui engine)
+target_include_directories(editor PUBLIC ${CMAKE_SOURCE_DIR})
 
-# ----------------
-# shader compilation
-# ----------------
+# ----------------------------
+# Resource and Shader Management
+# ----------------------------
+
 find_package(Vulkan REQUIRED)
-
 get_filename_component(VULKAN_PATH ${Vulkan_INCLUDE_DIRS} DIRECTORY)
-set(GLSL_VALIDATOR ${VULKAN_PATH}/bin/glslangValidator)
+set(GLSL_VALIDATOR "${VULKAN_PATH}/bin/glslangValidator")
 
-file(GLOB_RECURSE GLSL_SOURCE_FILES "shaders/*.vert" "shaders/*.frag")
+# --- Copy General Resources ---
+set(RES_SRC_DIR "${CMAKE_SOURCE_DIR}/res")
+set(RES_DST_DIR "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/res")
 
-foreach(GLSL ${GLSL_SOURCE_FILES})
-    get_filename_component(FILE_NAME ${GLSL} NAME)
-    set(SPIRV "${PROJECT_BINARY_DIR}/shaders/${FILE_NAME}.spv")
+add_custom_command(
+    TARGET editor POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${RES_DST_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${RES_SRC_DIR}" "${RES_DST_DIR}"
+    COMMENT "Copying resources to runtime res folder"
+)
+
+# --- Compile Shaders ---
+set(SHADER_SRC_DIR "${CMAKE_SOURCE_DIR}/editor/shaders")
+set(SHADER_BUILD_DIR "${CMAKE_BINARY_DIR}/shaders")
+set(SHADER_RUNTIME_DIR "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/shaders")
+
+file(GLOB_RECURSE GLSL_SOURCES
+    "${SHADER_SRC_DIR}/*.vert"
+    "${SHADER_SRC_DIR}/*.frag"
+)
+
+set(SPIRV_OUTPUTS "")
+foreach(GLSL_FILE ${GLSL_SOURCES})
+    get_filename_component(FILE_NAME ${GLSL_FILE} NAME)
+    set(SPIRV_FILE "${SHADER_BUILD_DIR}/${FILE_NAME}.spv")
+
     add_custom_command(
-        OUTPUT ${SPIRV}
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/shaders/"
-        COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV}
-        DEPENDS ${GLSL}
+        OUTPUT ${SPIRV_FILE}
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_BUILD_DIR}"
+        COMMAND "${GLSL_VALIDATOR}" -V "${GLSL_FILE}" -o "${SPIRV_FILE}"
+        DEPENDS ${GLSL_FILE}
+        COMMENT "Compiling shader: ${FILE_NAME}"
+        BYPRODUCTS ${SPIRV_FILE}
     )
-    list(APPEND SPIRV_BINARY_FILES ${SPIRV})
+
+    list(APPEND SPIRV_OUTPUTS ${SPIRV_FILE})
 endforeach()
 
-add_custom_target(jengineshaders DEPENDS ${SPIRV_BINARY_FILES})
-add_dependencies(jengine jengineshaders)
+add_custom_target(compile_shaders DEPENDS ${SPIRV_OUTPUTS})
+add_dependencies(editor compile_shaders)
 
-add_custom_command(TARGET jengine POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:jengine>/shaders/"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${PROJECT_BINARY_DIR}/shaders"
-        "$<TARGET_FILE_DIR:jengine>/shaders"
+# --- Copy Compiled Shaders to Executable Folder ---
+add_custom_command(
+    TARGET editor POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_RUNTIME_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${SHADER_BUILD_DIR}" "${SHADER_RUNTIME_DIR}"
+    COMMENT "Copying SPIR-V shaders to runtime folder"
 )
