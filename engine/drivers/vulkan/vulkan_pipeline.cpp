@@ -7,7 +7,6 @@
 namespace engine::drivers::vulkan {
 
 VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
-    uint32_t width, uint32_t height,
     VkShaderModule vert, VkShaderModule frag,
     const core::graphics::VertexBinding& vertex_binding, // TODO: add support for multiple bindings
     const core::graphics::DescriptorSetLayout& layout,
@@ -102,21 +101,6 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
             .to_vk()
     };
 
-    // viewport and scissor
-    VkViewport viewport = wk::Viewport{}
-        .set_x(0.0f)
-        .set_y(0.0f)
-        .set_width(static_cast<float>(width))
-        .set_height(static_cast<float>(height))
-        .set_min_depth(0.0f)
-        .set_max_depth(1.0f)
-        .to_vk();
-
-    VkRect2D scissor = wk::Rect2D{}
-        .set_offset({0, 0})
-        .set_extent(wk::Extent{}.set_width(width).set_height(height).to_vk_extent_2d())
-        .to_vk();
-
     // vertex input
     VkVertexInputBindingDescription vertex_input_binding = wk::VertexInputBindingDescription{}
         .set_binding(vertex_binding.binding)
@@ -149,8 +133,8 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
 
     VkPipelineViewportStateCreateInfo viewport_state_ci =
         wk::PipelineViewportStateCreateInfo{}
-            .set_viewports(1, &viewport)
-            .set_scissors(1, &scissor)
+            .set_viewport_count(1)
+            .set_scissor_count(1)
             .to_vk();
 
     VkPipelineRasterizationStateCreateInfo raster_ci =

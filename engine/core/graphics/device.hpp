@@ -27,7 +27,6 @@ public:
         const void* index_data, uint32_t index_size, uint32_t index_count
     ) const = 0;
     virtual std::unique_ptr<Pipeline> create_pipeline(
-        uint32_t width, uint32_t height,
         const Shader& vert, const Shader& frag,
         const DescriptorSetLayout& layout,
         const VertexBinding& vertex_binding, 

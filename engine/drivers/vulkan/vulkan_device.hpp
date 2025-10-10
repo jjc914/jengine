@@ -30,7 +30,6 @@ public:
         const void* vertex_data, uint32_t vertex_size, uint32_t vertex_count,
         const void* index_data, uint32_t index_size, uint32_t index_count) const override;
     std::unique_ptr<core::graphics::Pipeline> create_pipeline(
-        uint32_t width, uint32_t height,
         const core::graphics::Shader& vert, const core::graphics::Shader& frag,
         const core::graphics::DescriptorSetLayout& layout,
         const core::graphics::VertexBinding& vertex_binding, 

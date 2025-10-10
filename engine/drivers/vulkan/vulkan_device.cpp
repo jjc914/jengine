@@ -176,7 +176,6 @@ std::unique_ptr<core::graphics::MeshBuffer> VulkanDevice::create_mesh_buffer(
 }
 
 std::unique_ptr<core::graphics::Pipeline> VulkanDevice::create_pipeline(
-    uint32_t width, uint32_t height,
     const core::graphics::Shader& vert, const core::graphics::Shader& frag,
     const core::graphics::DescriptorSetLayout& layout,
     const core::graphics::VertexBinding& vertex_binding, 
@@ -184,7 +183,6 @@ std::unique_ptr<core::graphics::Pipeline> VulkanDevice::create_pipeline(
 ) const {
     return std::make_unique<VulkanPipeline>(
         *this,
-        width, height,
         static_cast<VkShaderModule>(vert.native_handle()), static_cast<VkShaderModule>(frag.native_handle()),
         vertex_binding,
         layout,

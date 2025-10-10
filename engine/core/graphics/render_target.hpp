@@ -21,6 +21,8 @@ public:
     virtual void submit_draws(uint32_t index_count) = 0;
     virtual void end_frame() = 0;
 
+    virtual void resize(uint32_t width, uint32_t height) = 0;
+
     virtual std::string backend_name() const = 0;
 };
 

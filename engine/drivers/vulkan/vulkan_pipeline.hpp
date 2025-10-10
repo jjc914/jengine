@@ -16,8 +16,7 @@ class VulkanDevice;
 
 class VulkanPipeline final : public core::graphics::Pipeline {
 public:
-    VulkanPipeline(const VulkanDevice& device, 
-        uint32_t width, uint32_t height,
+    VulkanPipeline(const VulkanDevice& device,
         VkShaderModule vert, VkShaderModule frag,
         const core::graphics::VertexBinding& vertex_binding,
         const core::graphics::DescriptorSetLayout& layout,

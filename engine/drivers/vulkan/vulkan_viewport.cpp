@@ -19,7 +19,8 @@ VulkanViewport::VulkanViewport(
     uint32_t max_in_flight)
     : VulkanRenderTarget(device.device()), _physical_device(device.physical_device()), _surface(window.surface()),
       _allocator(device.allocator()), _command_pool(device.command_pool()), _descriptor_pool(device.descriptor_pool()),
-      _graphics_queue(device.graphics_queue()), _current_frame(0)
+      _graphics_queue(device.graphics_queue()), _render_pass(static_cast<VkRenderPass>(pipeline.native_render_pass())),
+      _current_frame(0)
 {
     _width = width;
     _height = height;
@@ -45,34 +46,39 @@ VulkanViewport::VulkanViewport(
     _present_queue = wk::Queue(device.device().handle(), present_family);
 
     wk::PhysicalDeviceSurfaceSupport support = wk::GetPhysicalDeviceSurfaceSupport(_physical_device.handle(), _surface.handle());
+    _present_mode = wk::ChooseSurfacePresentationMode(support.present_modes);
+    _image_extent = wk::ChooseSurfaceExtent(_width, _height, support.capabilities);
+    _color_format = ToVkFormat(pipeline.present_color_format());
+    _color_space = ToVkColorSpace(device.present_color_space());
+    _depth_format = ToVkFormat(device.depth_format());
 
     uint32_t image_count = support.capabilities.minImageCount + 1;
     if (support.capabilities.maxImageCount != 0 &&
         image_count > support.capabilities.maxImageCount) {
         image_count = support.capabilities.maxImageCount;
     }
-    uint32_t min_image_count = image_count;
+    _min_image_count = image_count;
 
     // swapchain
-    std::vector<uint32_t> queue_family_indices;
-    VkSharingMode image_sharing_mode = VK_SHARING_MODE_EXCLUSIVE;
+    _queue_family_indices.clear();
+    _queue_family_sharing_mode = VK_SHARING_MODE_EXCLUSIVE;
     if (_graphics_queue.family_index() != present_family) {
-        queue_family_indices = { _graphics_queue.family_index(), present_family };
-        image_sharing_mode = VK_SHARING_MODE_CONCURRENT;
+        _queue_family_indices = { _graphics_queue.family_index(), present_family };
+        _queue_family_sharing_mode = VK_SHARING_MODE_CONCURRENT;
     }
 
     _swapchain = wk::Swapchain(_device.handle(),
         wk::SwapchainCreateInfo{}
             .set_surface(_surface.handle())
-            .set_present_mode(wk::ChooseSurfacePresentationMode(support.present_modes))
-            .set_min_image_count(min_image_count)
-            .set_image_extent(wk::ChooseSurfaceExtent(width, height, support.capabilities))
-            .set_image_format(ToVkFormat(pipeline.present_color_format()))
-            .set_image_color_space(ToVkColorSpace(device.present_color_space()))
+            .set_present_mode(_present_mode)
+            .set_min_image_count(_min_image_count)
+            .set_image_extent(_image_extent)
+            .set_image_format(_color_format)
+            .set_image_color_space(_color_space)
             .set_image_array_layers(1)
             .set_image_usage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-            .set_image_sharing_mode(image_sharing_mode)
-            .set_queue_family_indices(static_cast<uint32_t>(queue_family_indices.size()), queue_family_indices.empty() ? nullptr : queue_family_indices.data())
+            .set_image_sharing_mode(_queue_family_sharing_mode)
+            .set_queue_family_indices(static_cast<uint32_t>(_queue_family_indices.size()), _queue_family_indices.empty() ? nullptr : _queue_family_indices.data())
             .to_vk()
     );
 
@@ -89,8 +95,8 @@ VulkanViewport::VulkanViewport(
             _allocator.handle(),
             wk::ImageCreateInfo{}
                 .set_image_type(VK_IMAGE_TYPE_2D)
-                .set_format(ToVkFormat(device.depth_format()))
-                .set_extent(wk::Extent(_swapchain.extent()).to_vk())
+                .set_format(_depth_format)
+                .set_extent(wk::Extent(_image_extent).to_vk())
                 .set_mip_levels(1)
                 .set_array_layers(1)
                 .set_samples(VK_SAMPLE_COUNT_1_BIT)
@@ -110,11 +116,11 @@ VulkanViewport::VulkanViewport(
             wk::ImageViewCreateInfo{}
                 .set_image(_images.back().handle())
                 .set_view_type(VK_IMAGE_VIEW_TYPE_2D)
-                .set_format(ToVkFormat(device.depth_format()))
+                .set_format(_depth_format)
                 .set_components(wk::ComponentMapping::identity().to_vk())
                 .set_subresource_range(
                     wk::ImageSubresourceRange{}
-                        .set_aspect_mask(wk::GetAspectFlags(ToVkFormat(device.depth_format())))
+                        .set_aspect_mask(wk::GetAspectFlags(_depth_format))
                         .set_base_mip_level(0)
                         .set_level_count(1)
                         .set_base_array_layer(0)
@@ -216,8 +222,8 @@ void* VulkanViewport::begin_frame(const core::graphics::Pipeline& pipeline) {
     // build viewport/scissor
     VkViewport viewport = wk::Viewport{}
         .set_x(0.0f).set_y(0.0f)
-        .set_width(static_cast<float>(_swapchain.extent().width))
-        .set_height(static_cast<float>(_swapchain.extent().height))
+        .set_width(static_cast<float>(_width))
+        .set_height(static_cast<float>(_height))
         .set_min_depth(0.0f).set_max_depth(1.0f)
         .to_vk();
     VkRect2D scissor = wk::Rect2D{}
@@ -275,8 +281,109 @@ void VulkanViewport::end_frame() {
     }
 }
 
-void VulkanViewport::rebuild() {
+void VulkanViewport::resize(uint32_t width, uint32_t height) {
+    if (width == 0 || height == 0) {
+        return;
+    }
 
+    _width = width;
+    _height = height;
+    rebuild();
+}
+
+void VulkanViewport::rebuild() {
+    vkDeviceWaitIdle(_device.handle());
+
+    _framebuffers.clear();
+    _image_views.clear();
+    _images.clear();
+
+    wk::PhysicalDeviceSurfaceSupport support = wk::GetPhysicalDeviceSurfaceSupport(_physical_device.handle(), _surface.handle());
+    _present_mode = wk::ChooseSurfacePresentationMode(support.present_modes);
+    _image_extent = wk::ChooseSurfaceExtent(_width, _height, support.capabilities);
+
+    // swapchain
+    wk::Swapchain new_swapchain = wk::Swapchain(_device.handle(),
+        wk::SwapchainCreateInfo{}
+            .set_surface(_surface.handle())
+            .set_present_mode(_present_mode)
+            .set_min_image_count(_min_image_count)
+            .set_image_extent(_image_extent)
+            .set_image_format(_color_format)
+            .set_image_color_space(_color_space)
+            .set_image_array_layers(1)
+            .set_image_usage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+            .set_image_sharing_mode(_queue_family_sharing_mode)
+            .set_queue_family_indices(static_cast<uint32_t>(_queue_family_indices.size()), _queue_family_indices.empty() ? nullptr : _queue_family_indices.data())
+            .set_old_swapchain(_swapchain.handle())
+            .to_vk()
+    );
+    _swapchain = std::move(new_swapchain);
+
+    _images.clear();
+    _image_views.clear();
+    _framebuffers.clear();
+    _images.reserve(_swapchain.image_views().size());
+    _image_views.reserve(_swapchain.image_views().size());
+    _framebuffers.reserve(_swapchain.image_views().size());
+
+    for (size_t i = 0; i < _swapchain.image_views().size(); ++i) {
+        // depth image
+        _images.emplace_back(
+            _allocator.handle(),
+            wk::ImageCreateInfo{}
+                .set_image_type(VK_IMAGE_TYPE_2D)
+                .set_format(_depth_format)
+                .set_extent(wk::Extent(_image_extent).to_vk())
+                .set_mip_levels(1)
+                .set_array_layers(1)
+                .set_samples(VK_SAMPLE_COUNT_1_BIT)
+                .set_tiling(VK_IMAGE_TILING_OPTIMAL)
+                .set_usage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+                .set_sharing_mode(VK_SHARING_MODE_EXCLUSIVE)
+                .set_initial_layout(VK_IMAGE_LAYOUT_UNDEFINED)
+                .to_vk(),
+            wk::AllocationCreateInfo{}
+                .set_usage(VMA_MEMORY_USAGE_GPU_ONLY)
+                .to_vk()
+        );
+
+        // depth view
+        _image_views.emplace_back(
+            _device.handle(),
+            wk::ImageViewCreateInfo{}
+                .set_image(_images.back().handle())
+                .set_view_type(VK_IMAGE_VIEW_TYPE_2D)
+                .set_format(_depth_format)
+                .set_components(wk::ComponentMapping::identity().to_vk())
+                .set_subresource_range(
+                    wk::ImageSubresourceRange{}
+                        .set_aspect_mask(wk::GetAspectFlags(_depth_format))
+                        .set_base_mip_level(0)
+                        .set_level_count(1)
+                        .set_base_array_layer(0)
+                        .set_layer_count(1)
+                        .to_vk()
+                )
+                .to_vk()
+        );
+
+        // framebuffer (color and depth)
+        std::vector<VkImageView> attachments = {
+            _swapchain.image_views()[i],
+            _image_views.back().handle()
+        };
+
+        _framebuffers.emplace_back(
+            _device.handle(),
+            wk::FramebufferCreateInfo{}
+                .set_render_pass(_render_pass)
+                .set_attachments(static_cast<uint32_t>(attachments.size()), attachments.data())
+                .set_extent(_swapchain.extent())
+                .set_layers(1)
+                .to_vk()
+        );
+    }
 }
 
 } // namespace engine::drivers::vulkan

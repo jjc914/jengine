@@ -27,6 +27,8 @@ public:
     void* begin_frame(const core::graphics::Pipeline& pipeline) override;
     void submit_draws(uint32_t index_count) override;
     void end_frame() override;
+
+    void resize(uint32_t width, uint32_t height) override;
     
     std::string backend_name() const override { return "Vulkan"; }
 
@@ -39,10 +41,19 @@ private:
     const wk::CommandPool& _command_pool;
     const wk::DescriptorPool& _descriptor_pool;
     const wk::Queue& _graphics_queue;
+    VkRenderPass _render_pass;
+    std::vector<uint32_t> _queue_family_indices;
+    VkSharingMode _queue_family_sharing_mode;
+    uint32_t _min_image_count;
 
     wk::Swapchain _swapchain;
     wk::Queue _present_queue;
 
+    VkPresentModeKHR _present_mode;
+    VkExtent2D _image_extent;
+    VkFormat _color_format;
+    VkColorSpaceKHR _color_space;
+    VkFormat _depth_format;
     uint32_t _current_frame;
     uint32_t _available_image_index;
 };

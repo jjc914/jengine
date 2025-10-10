@@ -79,7 +79,7 @@ int App::run() {
             .set_usage(engine::core::graphics::ImageUsage::DEPTH)
     };
 
-    _present_pipeline = _device->create_pipeline(width, height,
+    _present_pipeline = _device->create_pipeline(
         *_vertex_shader, *_fragment_shader,
         *_descriptor_layout, vertex_binding, attachment_info
     );
@@ -114,6 +114,9 @@ int App::run() {
         }
 
         if (is_dirty) {
+            _viewport->resize(width, height);
+            is_dirty = false;
+            continue;
             // _renderer->resize(width, height);
             // is_dirty = false;
             // continue;
