@@ -20,7 +20,7 @@ namespace engine::drivers::vulkan {
 VulkanDevice::VulkanDevice(const VulkanInstance& instance, const core::window::Window& window) {
     // physical device
     VkPhysicalDeviceFeatures2 physical_device_features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
-    _physical_device = wk::PhysicalDevice(static_cast<VkInstance>(instance.native_handle()),
+    _physical_device = wk::PhysicalDevice(static_cast<VkInstance>(instance.native_instance()),
         wk::GetRequiredDeviceExtensions(), &physical_device_features,
         &wk::DefaultPhysicalDeviceFeatureScorer
     );
@@ -153,7 +153,7 @@ VulkanDevice::VulkanDevice(const VulkanInstance& instance, const core::window::W
     _allocator = wk::Allocator(
         wk::AllocatorCreateInfo{}
             .set_vulkan_api_version(VK_API_VERSION_1_3)
-            .set_instance(static_cast<VkInstance>(instance.native_handle()))
+            .set_instance(static_cast<VkInstance>(instance.native_instance()))
             .set_physical_device(_physical_device.handle())
             .set_device(_device.handle())
             .set_p_vulkan_functions(&vulkan_functions)
@@ -193,7 +193,7 @@ std::unique_ptr<core::graphics::Pipeline> VulkanDevice::create_pipeline(
 ) const {
     return std::make_unique<VulkanPipeline>(
         *this,
-        static_cast<VkShaderModule>(vert.native_handle()), static_cast<VkShaderModule>(frag.native_handle()),
+        static_cast<VkShaderModule>(vert.native_shader()), static_cast<VkShaderModule>(frag.native_shader()),
         vertex_binding,
         layout,
         attachment_info
@@ -216,6 +216,39 @@ std::unique_ptr<core::graphics::DescriptorSetLayout> VulkanDevice::create_descri
     return std::make_unique<VulkanDescriptorSetLayout>(
         *this, description
     );
+}
+
+void* VulkanDevice::begin_command_buffer() const {
+    VkCommandBufferAllocateInfo alloc_info = wk::CommandBufferAllocateInfo{}
+        .set_level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
+        .set_command_pool(_command_pool.handle())
+        .set_command_buffer_count(1)
+        .to_vk();
+
+    VkCommandBuffer command_buffer;
+    vkAllocateCommandBuffers(_device.handle(), &alloc_info, &command_buffer);
+
+    VkCommandBufferBeginInfo begin_info = wk::CommandBufferBeginInfo{}
+        .set_flags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)
+        .to_vk();
+
+    vkBeginCommandBuffer(command_buffer, &begin_info);
+    return static_cast<void*>(command_buffer);
+}
+
+void VulkanDevice::end_command_buffer(void* command_buffer) const {
+    VkCommandBuffer cb = static_cast<VkCommandBuffer>(command_buffer);
+    vkEndCommandBuffer(cb);
+
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &cb;
+
+    vkQueueSubmit(_graphics_queue.handle(), 1, &submit_info, VK_NULL_HANDLE);
+    vkQueueWaitIdle(_graphics_queue.handle());
+
+    vkFreeCommandBuffers(_device.handle(), _command_pool.handle(), 1, &cb);
 }
 
 }

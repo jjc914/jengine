@@ -16,7 +16,7 @@ public:
                               const engine::core::graphics::DescriptorLayoutDescription& description);
     ~VulkanDescriptorSetLayout() override = default;
 
-    void* native_handle() const override { return static_cast<void*>(_layout.handle()); }
+    void* native_descriptor_set_layout() const override { return static_cast<void*>(_layout.handle()); }
     std::string backend_name() const { return "Vulkan"; }
 
 private:

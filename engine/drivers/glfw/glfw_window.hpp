@@ -30,7 +30,7 @@ public:
     const core::graphics::ColorSpace color_space() const { return _color_space; }
     const core::graphics::ImageFormat depth_format() const { return _depth_format; }
 
-    void* native_handle() const override { return static_cast<void*>(_window); }
+    void* native_window() const override { return static_cast<void*>(_window); }
 
 private:
     VkInstance _instance;

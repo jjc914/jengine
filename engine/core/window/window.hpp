@@ -34,7 +34,7 @@ public:
     virtual const graphics::ColorSpace color_space() const = 0;
     virtual const graphics::ImageFormat depth_format() const = 0;
 
-    virtual void* native_handle() const = 0;
+    virtual void* native_window() const = 0;
 
 protected:
     Window() = default;

@@ -43,6 +43,9 @@ public:
         const core::graphics::DescriptorLayoutDescription& description
     ) const override;
 
+    void* begin_command_buffer() const override;
+    void end_command_buffer(void* command_buffer) const override;
+
     const wk::PhysicalDevice& physical_device() const { return _physical_device; }
 
     const wk::Device& device() const { return _device; }
@@ -57,8 +60,11 @@ public:
 
     const wk::DeviceQueueFamilyIndices& queue_families() const { return _queue_families; }
 
-    void* native_handle() const override { return static_cast<void*>(_device.handle()); }
+    void* native_device() const override { return static_cast<void*>(_device.handle()); }
     void* native_physical_device() const override { return static_cast<void*>(_physical_device.handle()); }
+    void* native_descriptor_pool() const override { return static_cast<void*>(_descriptor_pool.handle()); }
+    void* native_graphics_queue() const override { return static_cast<void*>(_graphics_queue.handle()); }
+    uint32_t native_graphics_queue_family() const override { return _graphics_queue.family_index(); }
     std::string backend_name() const override { return "Vulkan"; }
 
 private:

@@ -17,7 +17,7 @@ public:
     virtual std::unique_ptr<Device> create_device(const core::window::Window& window) const = 0;
 
     virtual std::string backend_name() const = 0;
-    virtual void* native_handle() const = 0;
+    virtual void* native_instance() const = 0;
 
 protected:
     Instance() = default;

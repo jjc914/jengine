@@ -41,8 +41,14 @@ public:
         const DescriptorLayoutDescription& description
     ) const = 0;
 
-    virtual void* native_handle() const = 0;
+    virtual void* begin_command_buffer() const = 0;
+    virtual void end_command_buffer(void* cb) const = 0;
+
+    virtual void* native_device() const = 0;
     virtual void* native_physical_device() const = 0;
+    virtual void* native_descriptor_pool() const = 0;
+    virtual void* native_graphics_queue() const = 0;
+    virtual uint32_t native_graphics_queue_family() const = 0;
     virtual std::string backend_name() const = 0;
 
 protected:

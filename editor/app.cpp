@@ -7,6 +7,12 @@
 #include "engine/core/graphics/vertex_types.hpp"
 #include "engine/core/graphics/image_types.hpp"
 
+#include "editor/gui/imgui_layer.hpp"
+
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_vulkan.h>
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
 
@@ -34,7 +40,7 @@ int App::run() {
     _instance = std::make_unique<engine::drivers::vulkan::VulkanInstance>();
 
     // window
-    _window = std::make_unique<engine::drivers::glfw::GlfwWindow>(_instance->native_handle(), "jengine", width, height);
+    _window = std::make_unique<engine::drivers::glfw::GlfwWindow>(_instance->native_instance(), "jengine", width, height);
 
     // device
     _device = _instance->create_device(*_window);
@@ -84,6 +90,9 @@ int App::run() {
         *_vertex_shader, *_fragment_shader,
         *_descriptor_layout, vertex_binding, attachment_info
     );
+
+    // init gui layer
+    ui::ImGuiLayer gui_layer(*_instance, *_device, *_present_pipeline, *_window);
 
     // create viewport
     _viewport = _device->create_viewport(*_window, *_present_pipeline, width, height);
@@ -144,6 +153,15 @@ int App::run() {
         ubo.proj = glm::perspective(glm::radians(45.0f), width / (float)height, 0.1f, 100.0f);
         ubo.proj[1][1] *= -1; // flip y for vulkan
         _material->update_uniform_buffer(static_cast<void*>(&ubo));
+
+        // update gui
+        gui_layer.begin_frame();
+        ImGui::Begin("Editor");
+        ImGui::Text("FPS: %.1f", 1.0f / dt);
+        ImGui::Text("Time: %.2f", t);
+        ImGui::Text("Window Size: %ux%u", width, height);
+        ImGui::End();
+        gui_layer.end_frame(cb);
 
         // bind resources
         _present_pipeline->bind(cb);

@@ -16,7 +16,7 @@ public:
 
     core::graphics::ShaderStageFlags stage() const override { return _stage; }
 
-    void* native_handle() const override { return static_cast<void*>(_module.handle()); }
+    void* native_shader() const override { return static_cast<void*>(_module.handle()); }
     std::string backend_name() const override { return "Vulkan"; }
 
 private:

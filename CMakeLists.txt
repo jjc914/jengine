@@ -14,10 +14,13 @@ add_library(tinyobjloader STATIC vendor/tinyobjloader/tiny_obj_loader.cc)
 target_include_directories(tinyobjloader PUBLIC vendor/tinyobjloader)
 
 # dear imgui
+find_package(Vulkan REQUIRED)
+include_directories(${Vulkan_INCLUDE_DIRS})
+
 file(GLOB IMGUI_SOURCES
     vendor/imgui/*.cpp
     vendor/imgui/backends/imgui_impl_glfw.cpp
-    vendor/imgui/backends/imgui_impl_opengl3.cpp
+    vendor/imgui/backends/imgui_impl_vulkan.cpp
 )
 add_library(imgui STATIC ${IMGUI_SOURCES})
 target_include_directories(imgui PUBLIC ${CMAKE_SOURCE_DIR}/vendor/glfw/include)
@@ -31,6 +34,7 @@ add_library(engine STATIC)
 target_compile_definitions(engine PUBLIC WLK_ENABLE_VALIDATION_LAYERS)
 target_include_directories(engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_sources(engine PRIVATE
+    engine/core/debug/assert.hpp
     engine/core/debug/logger.hpp
 
     engine/core/window/window.hpp
@@ -68,7 +72,8 @@ target_link_libraries(engine PUBLIC wulkan simple_ecs tinyobjloader)
 
 add_executable(editor 
     editor/main.cpp
-    editor/app.hpp editor/app.cpp 
+    editor/app.hpp  editor/app.cpp
+    editor/gui/imgui_layer.hpp  editor/gui/imgui_layer.cpp
 )
 
 target_compile_definitions(editor PUBLIC WLK_ENABLE_VALIDATION_LAYERS)

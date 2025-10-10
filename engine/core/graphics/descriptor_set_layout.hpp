@@ -9,7 +9,7 @@ class DescriptorSetLayout {
 public:
     virtual ~DescriptorSetLayout() = default;
 
-    virtual void* native_handle() const = 0;
+    virtual void* native_descriptor_set_layout() const = 0;
     virtual std::string backend_name() const = 0;
 
 protected:

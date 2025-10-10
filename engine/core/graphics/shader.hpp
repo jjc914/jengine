@@ -15,7 +15,7 @@ public:
     
     virtual ShaderStageFlags stage() const = 0;
     
-    virtual void* native_handle() const = 0;
+    virtual void* native_shader() const = 0;
     virtual std::string backend_name() const = 0;
 };
 

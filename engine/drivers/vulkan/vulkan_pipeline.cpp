@@ -89,7 +89,7 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
             .to_vk()
     );
 
-    VkDescriptorSetLayout layouts[] = { static_cast<VkDescriptorSetLayout>(layout.native_handle())};
+    VkDescriptorSetLayout layouts[] = { static_cast<VkDescriptorSetLayout>(layout.native_descriptor_set_layout())};
 
     _pipeline_layout = wk::PipelineLayout(_device.handle(),
         wk::PipelineLayoutCreateInfo{}
@@ -219,7 +219,7 @@ std::unique_ptr<core::graphics::Material> VulkanPipeline::create_material(
     uint32_t uniform_buffer_size
 ) const {
     return std::make_unique<VulkanMaterial>(
-        *this, static_cast<VkDescriptorSetLayout>(layout.native_handle()),
+        *this, static_cast<VkDescriptorSetLayout>(layout.native_descriptor_set_layout()),
         uniform_buffer_size
     );
 }
