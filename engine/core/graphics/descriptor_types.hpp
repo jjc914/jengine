@@ -1,6 +1,8 @@
 #ifndef engine_core_graphics_DESCRIPTOR_TYPES_HPP
 #define engine_core_graphics_DESCRIPTOR_TYPES_HPP
 
+#include "engine/core/debug/assert.hpp"
+
 #include <cstdint>
 #include <vector>
 
@@ -22,7 +24,7 @@ enum class ShaderStageFlags : uint32_t {
 
     ALL_GRAPHICS = (VERTEX | FRAGMENT | GEOMETRY |
                    TESSELLATION_CONTROL | TESSELLATION_EVALUATION),
-    ALL         = 0xFFFFFFFF
+    ALL          = 0xFFFFFFFF
 };
 
 constexpr inline ShaderStageFlags operator|(ShaderStageFlags a, ShaderStageFlags b) noexcept {
@@ -70,22 +72,59 @@ struct DescriptorLayoutBinding {
     uint32_t count = 1;
     ShaderStageFlags visibility = ShaderStageFlags::ALL;
 
-    DescriptorLayoutBinding& set_binding(uint32_t b) { binding = b; return *this; }
-    DescriptorLayoutBinding& set_type(DescriptorType t) { type = t; return *this; }
-    DescriptorLayoutBinding& set_count(uint32_t c) { count = c; return *this; }
-    DescriptorLayoutBinding& set_visibility(ShaderStageFlags v) { visibility = v; return *this; }
+    DescriptorLayoutBinding& set_binding(uint32_t b) { 
+        ENGINE_ASSERT(b < 32, "Descriptor binding index unusually large (expected <32)");
+        binding = b; 
+        return *this; 
+    }
+
+    DescriptorLayoutBinding& set_type(DescriptorType t) { 
+        ENGINE_ASSERT(t != DescriptorType::UNDEFINED, "Descriptor type must be defined");
+        type = t; 
+        return *this; 
+    }
+
+    DescriptorLayoutBinding& set_count(uint32_t c) { 
+        ENGINE_ASSERT(c > 0, "Descriptor count must be greater than 0");
+        count = c; 
+        return *this; 
+    }
+
+    DescriptorLayoutBinding& set_visibility(ShaderStageFlags v) { 
+        ENGINE_ASSERT(v != ShaderStageFlags::NONE, "Descriptor must be visible to at least one shader stage");
+        visibility = v; 
+        return *this; 
+    }
 };
 
 struct DescriptorLayoutDescription {
     std::vector<DescriptorLayoutBinding> bindings;
 
     DescriptorLayoutDescription& add_binding(uint32_t binding, DescriptorType type, uint32_t count = 1, ShaderStageFlags visibility = ShaderStageFlags::ALL) {
-        bindings.emplace_back(binding, type, count, visibility);
+        for (const DescriptorLayoutBinding& b : bindings)
+            ENGINE_ASSERT(b.binding != binding, "Duplicate descriptor binding index in layout description");
+
+        bindings.emplace_back(
+            DescriptorLayoutBinding{}
+                .set_binding(binding)
+                .set_type(type)
+                .set_count(count)
+                .set_visibility(visibility)
+        );
         return *this;
     }
 
     DescriptorLayoutDescription& add_binding(DescriptorLayoutBinding b) {
-        bindings.emplace_back(b);
+        for (const DescriptorLayoutBinding& bi : bindings)
+            ENGINE_ASSERT(bi.binding != b.binding, "Duplicate descriptor binding index in layout description");
+
+        bindings.emplace_back(
+            DescriptorLayoutBinding{}
+                .set_binding(b.binding)
+                .set_type(b.type)
+                .set_count(b.count)
+                .set_visibility(b.visibility)
+        );
         return *this;
     }
 };

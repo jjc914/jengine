@@ -1,5 +1,6 @@
 #include "glfw_window.hpp"
 
+#include "engine/core/debug/assert.hpp"
 #include "engine/core/debug/logger.hpp"
 
 #include "engine/core/graphics/device.hpp"
@@ -10,17 +11,24 @@ namespace engine::drivers::glfw {
 GlfwWindow::GlfwWindow(void* instance, const std::string& title, uint32_t width, uint32_t height)
     : _width(width), _height(height)
 {
+    ENGINE_ASSERT(instance != nullptr, "GLFW window creation requires a valid Vulkan instance");
+    ENGINE_ASSERT(width > 0 && height > 0, "GLFW window must have non-zero dimensions");
+    ENGINE_ASSERT(!title.empty(), "GLFW window title must not be empty");
+
     _window = glfwCreateWindow(static_cast<int>(width),
                                static_cast<int>(height),
                                title.c_str(),
                                nullptr,
                                nullptr);
+
     if (!_window) {
         glfwTerminate();
         core::debug::Logger::get_singleton().fatal("failed to create glfw window");
+        return;
     }
     
     _surface = wk::ext::glfw::Surface(static_cast<VkInstance>(instance), _window);
+    ENGINE_ASSERT(_surface.handle() != VK_NULL_HANDLE, "Failed to create Vulkan surface for GLFW window");
 }
 
 GlfwWindow::~GlfwWindow() {

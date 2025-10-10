@@ -4,6 +4,9 @@
 #include "vulkan_material.hpp"
 #include "convert_vulkan.hpp"
 
+#include "engine/core/debug/assert.hpp"
+#include "engine/core/debug/logger.hpp"
+
 namespace engine::drivers::vulkan {
 
 VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
@@ -14,11 +17,14 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
     : _device(device.device()), _allocator(device.allocator()), _descriptor_pool(device.descriptor_pool()),
       _attachment_info(attachment_info)
 {
+    ENGINE_ASSERT(!attachment_info.empty(), "VulkanPipeline requires at least one image attachment");
+    ENGINE_ASSERT(!vertex_binding.attributes.empty(), "VulkanPipeline requires at least one vertex attribute");
+
     // render pass
     std::vector<VkAttachmentDescription> attachment_descriptions;
     std::vector<VkAttachmentReference> color_attachment_references;
     bool has_depth = false;
-    VkAttachmentReference depth_attachment_reference;
+    VkAttachmentReference depth_attachment_reference{};
     for (int i = 0; i < _attachment_info.size(); ++i) {
         attachment_descriptions.emplace_back(
             wk::AttachmentDescription{}
@@ -52,9 +58,13 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
                     .to_vk();
                 _depth_format = _attachment_info[i].format;
                 has_depth = true;
+            } else {
+                core::debug::Logger::get_singleton().warn("Multiple depth attachments are not supported. Using the first one");
             }
         }
     }
+
+    ENGINE_ASSERT(has_depth || !color_attachment_references.empty(), "Pipeline must have at least one color or depth attachment");
 
     VkSubpassDescription subpass = wk::SubpassDescription{}
         .set_pipeline_bind_point(VK_PIPELINE_BIND_POINT_GRAPHICS)
@@ -199,6 +209,8 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
 }
 
 void VulkanPipeline::bind(void* cb) const {
+    ENGINE_ASSERT(cb != nullptr, "Attempted to bind pipeline with null command buffer");
+
     vkCmdBindPipeline(static_cast<VkCommandBuffer>(cb), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline.handle());
 }
 

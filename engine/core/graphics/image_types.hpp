@@ -1,6 +1,8 @@
 #ifndef engine_core_graphics_TYPES_HPP
 #define engine_core_graphics_TYPES_HPP
 
+#include "engine/core/debug/assert.hpp"
+
 namespace engine::core::graphics {
 
 enum class ImageFormat {
@@ -48,8 +50,17 @@ struct ImageAttachmentInfo {
     ImageFormat format;
     ImageUsage usage;
 
-    ImageAttachmentInfo& set_format(ImageFormat f) { format = f; return *this; }
-    ImageAttachmentInfo& set_usage(ImageUsage u) { usage = u; return *this; }
+    ImageAttachmentInfo& set_format(ImageFormat f) {
+        ENGINE_ASSERT(f != ImageFormat::UNDEFINED, "Image format must be defined (cannot be UNDEFINED)");
+        format = f;
+        return *this;
+    }
+
+    ImageAttachmentInfo& set_usage(ImageUsage u) {
+        ENGINE_ASSERT(u != ImageUsage::UNDEFINED, "Image usage must be defined (cannot be UNDEFINED)");
+        usage = u;
+        return *this;
+    }
 };
 
 };

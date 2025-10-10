@@ -28,7 +28,9 @@ inline VkFormat ToVkFormat(core::graphics::ImageFormat fmt) {
         case IF::D32_FLOAT:          return VK_FORMAT_D32_SFLOAT;
         case IF::D32_FLOAT_S8_UINT:  return VK_FORMAT_D32_SFLOAT_S8_UINT;
 
-        default:                     return VK_FORMAT_UNDEFINED;
+        default:
+            ENGINE_ASSERT(false, "Unrecognized ImageFormat enum in ToVkFormat()");
+            return VK_FORMAT_UNDEFINED;
     }
 }
 
@@ -51,7 +53,9 @@ inline core::graphics::ImageFormat FromImageVkFormat(VkFormat fmt) {
         case VK_FORMAT_D32_SFLOAT:           return IF::D32_FLOAT;
         case VK_FORMAT_D32_SFLOAT_S8_UINT:   return IF::D32_FLOAT_S8_UINT;
 
-        default:                             return IF::UNDEFINED;
+        default:
+            ENGINE_ASSERT(false, "Unrecognized VkFormat enum in FromImageVkFormat()");
+            return IF::UNDEFINED;
     }
 }
 
@@ -78,7 +82,9 @@ inline VkFormat ToVkFormat(core::graphics::VertexFormat fmt) {
         case VF::HALF3:  return VK_FORMAT_R16G16B16_SFLOAT;
         case VF::HALF4:  return VK_FORMAT_R16G16B16A16_SFLOAT;
 
-        default:         return VK_FORMAT_UNDEFINED;
+        default:
+            ENGINE_ASSERT(false, "Unrecognized VertexFormat enum in ToVkFormat()");
+            return VK_FORMAT_UNDEFINED;
     }
 }
 
@@ -89,7 +95,9 @@ inline VkImageLayout ToVkImageLayout(core::graphics::ImageUsage usage) {
         case IU::DEPTH:   return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         case IU::PRESENT: return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
         case IU::STORAGE: return VK_IMAGE_LAYOUT_GENERAL;
-        default:          return VK_IMAGE_LAYOUT_UNDEFINED;
+        default:
+            ENGINE_ASSERT(false, "Unrecognized ImageUsage enum in ToVkImageLayout()");
+            return VK_IMAGE_LAYOUT_UNDEFINED;
     }
 }
 
@@ -101,7 +109,9 @@ inline VkColorSpaceKHR ToVkColorSpace(core::graphics::ColorSpace cs) {
         case CS::HDR10_ST2084:   return VK_COLOR_SPACE_HDR10_ST2084_EXT;
         case CS::HDR10_HLG:      return VK_COLOR_SPACE_HDR10_HLG_EXT;
         case CS::DISPLAY_P3:     return VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT;
-        default:                 return VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+        default:
+            ENGINE_ASSERT(false, "Unrecognized ColorSpace enum in ToVkColorSpace()");
+            return VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
     }
 }
 
@@ -112,7 +122,9 @@ inline core::graphics::ColorSpace FromVkColorSpace(VkColorSpaceKHR cs) {
         case VK_COLOR_SPACE_HDR10_ST2084_EXT:          return CS::HDR10_ST2084;
         case VK_COLOR_SPACE_HDR10_HLG_EXT:             return CS::HDR10_HLG;
         case VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT:  return CS::DISPLAY_P3;
-        default:                                       return CS::UNKNOWN;
+        default:
+            ENGINE_ASSERT(false, "Unrecognized VkColorSpaceKHR enum in FromVkColorSpace()");
+            return CS::UNKNOWN;
     }
 }
 
@@ -128,7 +140,9 @@ inline VkDescriptorType ToVkDescriptorType(core::graphics::DescriptorType type) 
         case DescriptorType::UNIFORM_BUFFER:          return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         case DescriptorType::STORAGE_BUFFER:          return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         case DescriptorType::INPUT_ATTACHMENT:        return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-        default:                                      return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+        default:
+            ENGINE_ASSERT(false, "Unrecognized DescriptorType enum in ToVkDescriptorType()");
+            return VK_DESCRIPTOR_TYPE_MAX_ENUM;
     }
 }
 

@@ -2,9 +2,16 @@
 
 #include "vulkan_device.hpp"
 
+#include "core/debug/logger.hpp"
+
 namespace engine::drivers::vulkan {
 
 VulkanInstance::VulkanInstance() {
+#ifndef NDEBUG
+#ifndef WLK_ENABLE_VALIDATION_LAYERS
+    core::debug::Logger::get_singleton().warn("Debug mode is enabled but Vulkan validation layers are disabled");
+#endif
+#endif
 #ifdef WLK_ENABLE_VALIDATION_LAYERS
     VkDebugUtilsMessengerCreateInfoEXT debug_ci = wk::DebugMessengerCreateInfo{}
         .set_message_severity(
@@ -20,6 +27,8 @@ VulkanInstance::VulkanInstance() {
 #endif
 
     std::vector<const char*> instance_extensions = wk::ext::glfw::GetDefaultGlfwRequiredInstanceExtensions();
+    ENGINE_ASSERT(!instance_extensions.empty(), "Failed to retrieve required GLFW instance extensions");
+
     std::vector<const char*> instance_layers;
 #ifdef WLK_ENABLE_VALIDATION_LAYERS
     instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -27,7 +36,7 @@ VulkanInstance::VulkanInstance() {
 #endif
 
     VkApplicationInfo application_info = wk::ApplicationInfo{}
-        .set_application_name("1_basic")
+        .set_application_name("editor")
         .set_application_version(VK_MAKE_VERSION(1, 0, 0))
         .set_engine_name("No Engine")
         .set_engine_version(VK_MAKE_VERSION(1, 0, 0))

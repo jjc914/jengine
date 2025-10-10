@@ -36,4 +36,4 @@ private:
 
 } // namespace engine::core::graphics
 
-#endif
+#endif // engine_core_graphics_FRAME_GRAPH_HPP

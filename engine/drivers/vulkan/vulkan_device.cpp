@@ -9,6 +9,9 @@
 #include "vulkan_descriptor_set_layout.hpp"
 #include "convert_vulkan.hpp"
 
+#include "engine/core/debug/assert.hpp"
+#include "engine/core/debug/logger.hpp"
+
 #include "engine/core/window/window.hpp"
 #include "engine/core/graphics/image_types.hpp"
 
@@ -23,6 +26,8 @@ VulkanDevice::VulkanDevice(const VulkanInstance& instance, const core::window::W
     );
     
     _queue_families = wk::FindQueueFamilies(_physical_device.handle());
+
+    ENGINE_ASSERT(_queue_families.graphics_family.has_value(), "Selected physical device has no graphics queue family");
 
     uint32_t queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(_physical_device.handle(), &queue_family_count, nullptr);
@@ -43,8 +48,9 @@ VulkanDevice::VulkanDevice(const VulkanInstance& instance, const core::window::W
     // cache supported formats
     uint32_t format_count = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(_physical_device.handle(), window.surface().handle(), &format_count, nullptr);
-    if (format_count == 0)
-        throw std::runtime_error("No surface formats available.");
+    if (format_count == 0) {
+        core::debug::Logger::get_singleton().fatal("No surface formats available to this physical device");
+    }
 
     std::vector<VkSurfaceFormatKHR> formats(format_count);
     vkGetPhysicalDeviceSurfaceFormatsKHR(_physical_device.handle(), window.surface().handle(), &format_count, formats.data());
@@ -76,7 +82,9 @@ VulkanDevice::VulkanDevice(const VulkanInstance& instance, const core::window::W
         }
     }
 
-    if (_depth_format == engine::core::graphics::ImageFormat::UNDEFINED) throw std::runtime_error("Failed to find supported depth format!");
+    if (_depth_format == engine::core::graphics::ImageFormat::UNDEFINED) {
+        core::debug::Logger::get_singleton().fatal("Failed to find supported depth format for this physical device");
+    }
 
     // device
     const float QUEUE_PRIORITY = 1.0f;
@@ -168,6 +176,8 @@ std::unique_ptr<core::graphics::MeshBuffer> VulkanDevice::create_mesh_buffer(
     const void* vertex_data, uint32_t vertex_size, uint32_t vertex_count,
     const void* index_data, uint32_t index_size, uint32_t index_count) const 
 {
+    ENGINE_ASSERT(vertex_data != nullptr, "Vertex buffer creation requires valid data pointer");
+    ENGINE_ASSERT(vertex_size > 0 && vertex_count > 0, "Vertex buffer size/count must be greater than zero");
     return std::make_unique<VulkanMeshBuffer>(
         *this,
         vertex_data, vertex_size, vertex_count,

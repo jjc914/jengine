@@ -2,6 +2,8 @@
 
 #include "vulkan_device.hpp"
 
+#include "core/debug/assert.hpp"
+
 #include <cstring>
 
 namespace engine::drivers::vulkan {
@@ -100,6 +102,8 @@ VulkanMeshBuffer::VulkanMeshBuffer(
 }
 
 void VulkanMeshBuffer::bind(void* command_buffer) const {
+    ENGINE_ASSERT(command_buffer != nullptr, "Attempted to bind mesh buffer with null command buffer");
+
     VkDeviceSize offset = 0;
     VkCommandBuffer cb = static_cast<VkCommandBuffer>(command_buffer);
     vkCmdBindVertexBuffers(cb, 0, 1, &_vertex_buffer.handle(), &offset);

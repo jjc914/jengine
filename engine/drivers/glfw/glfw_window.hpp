@@ -41,9 +41,9 @@ private:
     uint32_t _width = 0;
     uint32_t _height = 0;
 
-    core::graphics::ImageFormat _color_format;
-    core::graphics::ColorSpace _color_space;
-    core::graphics::ImageFormat _depth_format;
+    core::graphics::ImageFormat _color_format = core::graphics::ImageFormat::UNDEFINED;
+    core::graphics::ColorSpace _color_space = core::graphics::ColorSpace::UNKNOWN;
+    core::graphics::ImageFormat _depth_format = core::graphics::ImageFormat::UNDEFINED;
 };
 
 } // namespace engine::core::window:

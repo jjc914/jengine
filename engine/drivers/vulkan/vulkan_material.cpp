@@ -3,6 +3,8 @@
 #include "vulkan_pipeline.hpp"
 #include "vulkan_descriptor_set_layout.hpp"
 
+#include "engine/core/debug/assert.hpp"
+
 #include <cstring>
 
 namespace engine::drivers::vulkan {
@@ -59,6 +61,8 @@ VulkanMaterial::VulkanMaterial(
 }
 
 void VulkanMaterial::update_uniform_buffer(const void* data) {
+    ENGINE_ASSERT(data != nullptr, "Attempted to update uniform buffer with null data");
+
     void* mapped = nullptr;
     vmaMapMemory(_allocator.handle(), _uniform_buffer.allocation(), &mapped);
     std::memcpy(mapped, data, _uniform_buffer_size);
@@ -66,6 +70,8 @@ void VulkanMaterial::update_uniform_buffer(const void* data) {
 }
 
 void VulkanMaterial::bind(void* cb) const {
+    ENGINE_ASSERT(cb != nullptr, "Attempted to bind material with null command buffer");
+
     vkCmdBindDescriptorSets(static_cast<VkCommandBuffer>(cb),
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         _pipeline_layout.handle(),

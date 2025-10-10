@@ -23,4 +23,4 @@ using ShaderPtr = std::shared_ptr<Shader>;
 
 } // namespace engine::core::graphics
 
-#endif engine_core_graphics_SHADER_HPP
+#endif // engine_core_graphics_SHADER_HPP
