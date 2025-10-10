@@ -79,10 +79,13 @@ int App::run() {
             .set_usage(engine::core::graphics::ImageUsage::DEPTH)
     };
 
+    // create present pipeline
     _present_pipeline = _device->create_pipeline(
         *_vertex_shader, *_fragment_shader,
         *_descriptor_layout, vertex_binding, attachment_info
     );
+
+    // create viewport
     _viewport = _device->create_viewport(*_window, *_present_pipeline, width, height);
 
     // create geometry and material
@@ -93,6 +96,7 @@ int App::run() {
     );
     _material = _present_pipeline->create_material(*_descriptor_layout, sizeof(UniformBufferObject));
 
+    // main loop
     auto last_time = std::chrono::high_resolution_clock::now();
     float t = 0;
     bool is_dirty = false;
@@ -114,12 +118,10 @@ int App::run() {
         }
 
         if (is_dirty) {
+            // resize viewport
             _viewport->resize(width, height);
             is_dirty = false;
             continue;
-            // _renderer->resize(width, height);
-            // is_dirty = false;
-            // continue;
         }
 
         void* cb;
@@ -143,11 +145,13 @@ int App::run() {
         ubo.proj[1][1] *= -1; // flip y for vulkan
         _material->update_uniform_buffer(static_cast<void*>(&ubo));
 
+        // bind resources
         _present_pipeline->bind(cb);
         _geometry->bind(cb);
         _material->bind(cb);
-        _viewport->submit_draws(mesh.meshes[0].indices.size());
 
+        // submit
+        _viewport->submit_draws(mesh.meshes[0].indices.size());
         _viewport->end_frame();
     }
     _device->wait_idle();
