@@ -2,7 +2,7 @@
 
 #include "vulkan_device.hpp"
 
-#include "core/debug/assert.hpp"
+#include "engine/core/debug/assert.hpp"
 
 #include <cstring>
 
