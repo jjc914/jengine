@@ -201,91 +201,134 @@ int App::run() {
             continue;
         }
 
+        // Begin ImGui frame
         gui_layer.begin_frame();
 
-        // Enable multi-window + docking
-        ImGuiIO& io = ImGui::GetIO();
-        ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-
-        // Create a full-screen dockspace over the main viewport
-        ImGui::DockSpaceOverViewport(
-            0,
-            main_viewport,
-            ImGuiDockNodeFlags_PassthruCentralNode |  // transparent background for central node
-            ImGuiDockNodeFlags_NoDockingInCentralNode |
-            ImGuiDockNodeFlags_AutoHideTabBar
-        );
-
-        // -------------------------------------------------------------
-        // Top Menu Bar (optional)
-        // -------------------------------------------------------------
+        // --- Menu bar ---
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("New Scene", "Ctrl+N")) {
-                    // TODO: new scene logic
-                }
-                if (ImGui::MenuItem("Open...", "Ctrl+O")) {
-                    // TODO: open scene
-                }
+                if (ImGui::MenuItem("New Scene")) {}
+                if (ImGui::MenuItem("Open...")) {}
+                if (ImGui::MenuItem("Save")) {}
+                ImGui::Separator();
                 if (ImGui::MenuItem("Exit")) {
-                    // _window->set_should_close(true);
+                    // TODO: exit logic
                 }
                 ImGui::EndMenu();
             }
 
             if (ImGui::BeginMenu("View")) {
-                bool show_console = true;
-                bool show_inspector = true;
-                ImGui::MenuItem("Console", nullptr, &show_console);
-                ImGui::MenuItem("Inspector", nullptr, &show_inspector);
+                // toggle visibility later
+                ImGui::MenuItem("Inspector", nullptr, true);
+                ImGui::MenuItem("Debug Window", nullptr, true);
                 ImGui::EndMenu();
             }
 
             ImGui::EndMainMenuBar();
         }
 
-        // -------------------------------------------------------------
-        // Example Panels (Dockable)
-        // -------------------------------------------------------------
+        // --- Layout ---
+        ImGui::SetNextWindowPos(ImVec2(0, 20)); // below the menu bar
+        ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+        ImGui::Begin("EditorLayout", nullptr,
+            ImGuiWindowFlags_NoTitleBar |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoBringToFrontOnFocus |
+            ImGuiWindowFlags_NoBackground
+        );
 
-        // --- Viewport panel ---
-        if (ImGui::Begin("Viewport")) {
+        ImGui::Columns(3, "EditorColumns");
+
+        // -------- Left Column --------
+        {
+            ImGui::BeginChild("LeftPanel", ImVec2(0, 0), true);
+            ImGui::Text("Hierarchy");
+            ImGui::Separator();
+            ImGui::Text("Entity 1");
+            ImGui::Text("Entity 2");
+            ImGui::Text("Entity 3");
+
+            ImGui::Separator();
+            ImGui::Text("Debug Log");
+            ImGui::TextWrapped("Everything looks good so far!");
+            ImGui::EndChild();
+        }
+        ImGui::NextColumn();
+
+        // -------- Center Column --------
+        {
+            ImGui::BeginChild("ViewportPanel", ImVec2(0, 0), true);
+            // (Optional) Label
+            ImGui::Text("Viewport");
+
             uint32_t cur_index = _editor_camera_target->frame_index();
             cur_index = std::min<uint32_t>(
                 cur_index, static_cast<uint32_t>(editor_camera_preview_textures.size() - 1));
 
             ImVec2 avail = ImGui::GetContentRegionAvail();
+
+            // --- Maintain aspect ratio ---
+            float tex_width  = static_cast<float>(_editor_camera_target->width());
+            float tex_height = static_cast<float>(_editor_camera_target->height());
+            float tex_aspect = tex_width / tex_height;
+            float panel_aspect = avail.x / avail.y;
+
+            ImVec2 image_size;
+            if (panel_aspect > tex_aspect) {
+                // panel wider than texture — fit by height
+                image_size.y = avail.y;
+                image_size.x = avail.y * tex_aspect;
+            } else {
+                // panel taller than texture — fit by width
+                image_size.x = avail.x;
+                image_size.y = avail.x / tex_aspect;
+            }
+
+            // --- Center the image in the panel ---
+            ImVec2 cursor = ImGui::GetCursorPos();
+            ImVec2 offset = ImVec2(
+                (avail.x - image_size.x) * 0.5f,
+                (avail.y - image_size.y) * 0.5f
+            );
+            ImGui::SetCursorPos(ImVec2(cursor.x + offset.x, cursor.y + offset.y));
+
+            // --- Draw the render target (flipped vertically for Vulkan) ---
             ImGui::Image(
                 editor_camera_preview_textures[cur_index],
-                avail,
-                ImVec2(0, 1),  // Flip Y
-                ImVec2(1, 0)
+                image_size,
+                ImVec2(0, 1),  // top-left UV
+                ImVec2(1, 0)   // bottom-right UV
             );
+            ImGui::EndChild();
         }
-        ImGui::End();
+        ImGui::NextColumn();
 
-        // --- Inspector panel ---
-        if (ImGui::Begin("Inspector")) {
-            ImGui::Text("Scene Stats:");
+        // -------- Right Column --------
+        {
+            ImGui::BeginChild("InspectorPanel", ImVec2(0, 0), true);
+            ImGui::Text("Inspector");
             ImGui::Separator();
-            ImGui::Text("FPS: %.1f", 1.0f / dt);
-            ImGui::Text("Time: %.2f", t);
-            ImGui::Text("Window: %ux%u", width, height);
+            ImGui::Text("Selected Entity:");
+            ImGui::Text("Entity 1");
+            ImGui::Separator();
+            ImGui::Text("Transform");
+            // ImGui::DragFloat3("Position", pos, 0.1f);
+            // ImGui::DragFloat3("Rotation", rot, 0.1f);
+            // ImGui::DragFloat3("Scale", scale, 0.1f);
+            ImGui::EndChild();
         }
-        ImGui::End();
 
-        // --- Console panel ---
-        if (ImGui::Begin("Console")) {
-            ImGui::TextWrapped("Output messages and logs will appear here...");
-        }
-        ImGui::End();
+        ImGui::Columns(1);
+        ImGui::End(); // EditorLayout
 
-        // -------------------------------------------------------------
-        // End ImGui frame and render
-        // -------------------------------------------------------------
+        // End ImGui frame
         gui_layer.end_frame(present_cb);
-
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
         _viewport->end_frame();
+
     }
 
     _device->wait_idle();

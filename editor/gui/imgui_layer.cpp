@@ -102,8 +102,8 @@ void ImGuiLayer::end_frame(void* cb) {
     ImGui::Render();
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), static_cast<VkCommandBuffer>(cb));
 
-    ImGui::UpdatePlatformWindows();
-    ImGui::RenderPlatformWindowsDefault();
+    // ImGui::UpdatePlatformWindows();
+    // ImGui::RenderPlatformWindowsDefault();
 }
 
 ImTextureID ImGuiLayer::register_texture(VkImageView image_view) {

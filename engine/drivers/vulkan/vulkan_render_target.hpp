@@ -16,8 +16,10 @@ public:
     VulkanRenderTarget(const wk::Device& device) : _device(device) {}
     ~VulkanRenderTarget() override = default;
 
-    uint32_t frame_index() const { return _frame_index; }
-    uint32_t frame_count() const { return _frame_count; };
+    uint32_t frame_index() const override { return _frame_index; }
+    uint32_t frame_count() const override { return _frame_count; }
+    uint32_t width() const override { return _width; }
+    uint32_t height() const override { return _height; }
     std::string backend_name() const override { return "Vulkan"; }
 
 protected:
