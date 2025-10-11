@@ -17,6 +17,7 @@ public:
     ~VulkanRenderTarget() override = default;
 
     uint32_t frame_index() const { return _frame_index; }
+    uint32_t frame_count() const { return _frame_count; };
     std::string backend_name() const override { return "Vulkan"; }
 
 protected:
@@ -24,6 +25,7 @@ protected:
 
     std::vector<wk::Framebuffer> _framebuffers;
     uint32_t _frame_index = 0;
+    uint32_t _frame_count = 0;
 
     std::vector<wk::Semaphore> _image_available_semaphores;
     std::vector<wk::Semaphore> _render_finished_semaphores;

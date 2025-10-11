@@ -24,6 +24,7 @@ VulkanTextureRenderTarget::VulkanTextureRenderTarget(
     _width = width;
     _height = height;
     _max_in_flight = max_in_flight;
+    _frame_count = max_in_flight;
 
     _render_pass = static_cast<VkRenderPass>(pipeline.native_render_pass());
 

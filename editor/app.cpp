@@ -30,13 +30,15 @@ int App::run() {
         engine::core::debug::Logger::get_singleton().fatal("Failed to initialize GLFW");
     }
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 
     // vulkan instance
     _instance = std::make_unique<engine::drivers::vulkan::VulkanInstance>();
 
     // window
-    _window = std::make_unique<engine::drivers::glfw::GlfwWindow>(
-        _instance->native_instance(), "jengine", width, height);
+    _window = std::make_unique<engine::drivers::glfw::GlfwWindow>(_instance->native_instance(), "jengine", width, height);
+    width = _window->width();
+    height = _window->height();
 
     // device
     _device = _instance->create_device(*_window);
@@ -109,10 +111,9 @@ int App::run() {
 
     // imgui register offscreen textures
     std::vector<ImTextureID> editor_camera_preview_textures;
-    for (uint32_t i = 0; i < 1; ++i) {
-        editor_camera_preview_textures.push_back(
-            gui_layer.register_texture(
-                static_cast<VkImageView>(_editor_camera_target->native_frame_image_view(i)))
+    for (uint32_t i = 0; i < _editor_camera_target->frame_count(); ++i) {
+        editor_camera_preview_textures.emplace_back(
+            gui_layer.register_texture(static_cast<VkImageView>(_editor_camera_target->native_frame_image_view(i)))
         );
     }
 
@@ -151,6 +152,17 @@ int App::run() {
         if (is_dirty) {
             _viewport->resize(width, height);
             _editor_camera_target->resize(width, height);
+
+            for (uint32_t i = 0; i < _editor_camera_target->frame_count(); ++i) {
+                gui_layer.unregister_texture(editor_camera_preview_textures[i]);
+            }
+            editor_camera_preview_textures.clear();
+            for (uint32_t i = 0; i < _editor_camera_target->frame_count(); ++i) {
+                editor_camera_preview_textures.emplace_back(
+                    gui_layer.register_texture(static_cast<VkImageView>(_editor_camera_target->native_frame_image_view(i)))
+                );
+            }
+
             is_dirty = false;
             continue;
         }
@@ -190,19 +202,87 @@ int App::run() {
         }
 
         gui_layer.begin_frame();
-        ImGui::Begin("Editor");
-        ImGui::Text("FPS: %.1f", 1.0f / dt);
-        ImGui::Text("Time: %.2f", t);
-        ImGui::Text("Window Size: %ux%u", width, height);
 
-        uint32_t cur_index = _editor_camera_target->frame_index();
-        cur_index = std::min<uint32_t>(cur_index, static_cast<uint32_t>(editor_camera_preview_textures.size() - 1));
+        // Enable multi-window + docking
+        ImGuiIO& io = ImGui::GetIO();
+        ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 
-        ImGui::Image(
-            editor_camera_preview_textures[cur_index],
-            ImVec2(width * 0.6f, height * 0.6f));
+        // Create a full-screen dockspace over the main viewport
+        ImGui::DockSpaceOverViewport(
+            0,
+            main_viewport,
+            ImGuiDockNodeFlags_PassthruCentralNode |  // transparent background for central node
+            ImGuiDockNodeFlags_NoDockingInCentralNode |
+            ImGuiDockNodeFlags_AutoHideTabBar
+        );
 
+        // -------------------------------------------------------------
+        // Top Menu Bar (optional)
+        // -------------------------------------------------------------
+        if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("New Scene", "Ctrl+N")) {
+                    // TODO: new scene logic
+                }
+                if (ImGui::MenuItem("Open...", "Ctrl+O")) {
+                    // TODO: open scene
+                }
+                if (ImGui::MenuItem("Exit")) {
+                    // _window->set_should_close(true);
+                }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("View")) {
+                bool show_console = true;
+                bool show_inspector = true;
+                ImGui::MenuItem("Console", nullptr, &show_console);
+                ImGui::MenuItem("Inspector", nullptr, &show_inspector);
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMainMenuBar();
+        }
+
+        // -------------------------------------------------------------
+        // Example Panels (Dockable)
+        // -------------------------------------------------------------
+
+        // --- Viewport panel ---
+        if (ImGui::Begin("Viewport")) {
+            uint32_t cur_index = _editor_camera_target->frame_index();
+            cur_index = std::min<uint32_t>(
+                cur_index, static_cast<uint32_t>(editor_camera_preview_textures.size() - 1));
+
+            ImVec2 avail = ImGui::GetContentRegionAvail();
+            ImGui::Image(
+                editor_camera_preview_textures[cur_index],
+                avail,
+                ImVec2(0, 1),  // Flip Y
+                ImVec2(1, 0)
+            );
+        }
         ImGui::End();
+
+        // --- Inspector panel ---
+        if (ImGui::Begin("Inspector")) {
+            ImGui::Text("Scene Stats:");
+            ImGui::Separator();
+            ImGui::Text("FPS: %.1f", 1.0f / dt);
+            ImGui::Text("Time: %.2f", t);
+            ImGui::Text("Window: %ux%u", width, height);
+        }
+        ImGui::End();
+
+        // --- Console panel ---
+        if (ImGui::Begin("Console")) {
+            ImGui::TextWrapped("Output messages and logs will appear here...");
+        }
+        ImGui::End();
+
+        // -------------------------------------------------------------
+        // End ImGui frame and render
+        // -------------------------------------------------------------
         gui_layer.end_frame(present_cb);
 
         _viewport->end_frame();

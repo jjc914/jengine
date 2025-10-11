@@ -83,15 +83,16 @@ VulkanViewport::VulkanViewport(
             .set_queue_family_indices(static_cast<uint32_t>(_queue_family_indices.size()), _queue_family_indices.empty() ? nullptr : _queue_family_indices.data())
             .to_vk()
     );
+    _frame_count = _swapchain.image_count();
 
     _depth_images.clear();
     _depth_image_views.clear();
     _framebuffers.clear();
-    _depth_images.reserve(_swapchain.image_views().size());
-    _depth_image_views.reserve(_swapchain.image_views().size());
-    _framebuffers.reserve(_swapchain.image_views().size());
+    _depth_images.reserve(_frame_count);
+    _depth_image_views.reserve(_frame_count);
+    _framebuffers.reserve(_frame_count);
 
-    for (size_t i = 0; i < _swapchain.image_views().size(); ++i) {
+    for (size_t i = 0; i < _frame_count; ++i) {
         // depth image
         _depth_images.emplace_back(
             _allocator.handle(),
@@ -154,12 +155,12 @@ VulkanViewport::VulkanViewport(
     _image_available_semaphores.clear();
     _render_finished_semaphores.clear();
     _in_flight_fences.clear();
-    _command_buffers.reserve(_max_in_flight);
-    _image_available_semaphores.reserve(_max_in_flight);
-    _render_finished_semaphores.reserve(_max_in_flight);
-    _in_flight_fences.reserve(_max_in_flight);
+    _command_buffers.reserve(_frame_count);
+    _image_available_semaphores.reserve(_frame_count);
+    _render_finished_semaphores.reserve(_frame_count);
+    _in_flight_fences.reserve(_frame_count);
 
-    for (size_t i = 0; i < _max_in_flight; ++i) {
+    for (size_t i = 0; i < _frame_count; ++i) {
         _command_buffers.emplace_back(_device.handle(),
             wk::CommandBufferAllocateInfo{}
                 .set_command_pool(_command_pool.handle())
@@ -322,15 +323,16 @@ void VulkanViewport::rebuild() {
             .to_vk()
     );
     _swapchain = std::move(new_swapchain);
+    _frame_count = _swapchain.image_count();
 
     _depth_images.clear();
     _depth_image_views.clear();
     _framebuffers.clear();
-    _depth_images.reserve(_swapchain.image_views().size());
-    _depth_image_views.reserve(_swapchain.image_views().size());
-    _framebuffers.reserve(_swapchain.image_views().size());
+    _depth_images.reserve(_frame_count);
+    _depth_image_views.reserve(_frame_count);
+    _framebuffers.reserve(_frame_count);
 
-    for (size_t i = 0; i < _swapchain.image_views().size(); ++i) {
+    for (size_t i = 0; i < _frame_count; ++i) {
         // depth image
         _depth_images.emplace_back(
             _allocator.handle(),
