@@ -17,13 +17,13 @@
                 logger.error("[ENGINE ASSERT FAILED]"); \
                 logger.error("Expression: {}", #expr); \
                 logger.error("File: {}:{}", __FILE__, __LINE__); \
-                /* If user provides a message, print it */ \
+                \
                 if (sizeof(#__VA_ARGS__) > 1) { \
                     char _assert_buffer[512]; \
                     std::snprintf(_assert_buffer, sizeof(_assert_buffer), __VA_ARGS__); \
                     logger.error("Message: {}", _assert_buffer); \
                 } \
-                logger.fatal("Aborting due to failed assertion."); \
+                logger.fatal("Aborting due to failed assertion"); \
                 std::abort(); \
             } \
         } while (0)
