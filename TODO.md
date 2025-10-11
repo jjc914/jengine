@@ -21,8 +21,12 @@
 - [ ] texture render targets for off-screen rendering
 
 ## editor
-- [ ] create `editor/gui/panels/**.hpp/cpp` for editor panels (inspector, console, etc.)
+- [ ] create `editor/gui/panels/**.hpp/cpp` for editor panels (inspector, viewport, console, etc.)
 - [ ] move `./res` folder to `./editor/red`
+- [ ] add simple editor color selection
+- [ ] add editor grid background
+- [ ] add editor gizmos
+- [ ] add editor inspector
 
 # physics
 - [ ] create physics library
