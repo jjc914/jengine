@@ -3,6 +3,8 @@
 #include "vulkan_device.hpp"
 #include "convert_vulkan.hpp"
 
+#include "engine/core/debug/logger.hpp"
+
 #include <wk/extent.hpp>
 #include <wk/ext/glfw/surface.hpp>
 #include <algorithm>
@@ -20,7 +22,7 @@ VulkanViewport::VulkanViewport(
     : VulkanRenderTarget(device.device()), _physical_device(device.physical_device()), _surface(window.surface()),
       _allocator(device.allocator()), _command_pool(device.command_pool()), _descriptor_pool(device.descriptor_pool()),
       _graphics_queue(device.graphics_queue()), _render_pass(static_cast<VkRenderPass>(pipeline.native_render_pass())),
-      _current_frame(0)
+      _current_index(0)
 {
     _width = width;
     _height = height;
@@ -48,7 +50,7 @@ VulkanViewport::VulkanViewport(
     wk::PhysicalDeviceSurfaceSupport support = wk::GetPhysicalDeviceSurfaceSupport(_physical_device.handle(), _surface.handle());
     _present_mode = wk::ChooseSurfacePresentationMode(support.present_modes);
     _image_extent = wk::ChooseSurfaceExtent(_width, _height, support.capabilities);
-    _color_format = ToVkFormat(pipeline.present_color_format());
+    _color_format = ToVkFormat(pipeline.color_format());
     _color_space = ToVkColorSpace(device.present_color_space());
     _depth_format = ToVkFormat(device.depth_format());
 
@@ -82,16 +84,16 @@ VulkanViewport::VulkanViewport(
             .to_vk()
     );
 
-    _images.clear();
-    _image_views.clear();
+    _depth_images.clear();
+    _depth_image_views.clear();
     _framebuffers.clear();
-    _images.reserve(_swapchain.image_views().size());
-    _image_views.reserve(_swapchain.image_views().size());
+    _depth_images.reserve(_swapchain.image_views().size());
+    _depth_image_views.reserve(_swapchain.image_views().size());
     _framebuffers.reserve(_swapchain.image_views().size());
 
     for (size_t i = 0; i < _swapchain.image_views().size(); ++i) {
         // depth image
-        _images.emplace_back(
+        _depth_images.emplace_back(
             _allocator.handle(),
             wk::ImageCreateInfo{}
                 .set_image_type(VK_IMAGE_TYPE_2D)
@@ -111,10 +113,10 @@ VulkanViewport::VulkanViewport(
         );
 
         // depth view
-        _image_views.emplace_back(
+        _depth_image_views.emplace_back(
             _device.handle(),
             wk::ImageViewCreateInfo{}
-                .set_image(_images.back().handle())
+                .set_image(_depth_images.back().handle())
                 .set_view_type(VK_IMAGE_VIEW_TYPE_2D)
                 .set_format(_depth_format)
                 .set_components(wk::ComponentMapping::identity().to_vk())
@@ -133,7 +135,7 @@ VulkanViewport::VulkanViewport(
         // framebuffer (color and depth)
         std::vector<VkImageView> attachments = {
             _swapchain.image_views()[i],
-            _image_views.back().handle()
+            _depth_image_views.back().handle()
         };
 
         _framebuffers.emplace_back(
@@ -176,28 +178,29 @@ VulkanViewport::VulkanViewport(
 }
 
 void* VulkanViewport::begin_frame(const core::graphics::Pipeline& pipeline) {
-    vkWaitForFences(_device.handle(), 1, &_in_flight_fences[_current_frame].handle(), VK_TRUE, UINT64_MAX);
+    vkWaitForFences(_device.handle(), 1, &_in_flight_fences[_current_index].handle(), VK_TRUE, UINT64_MAX);
 
     // acquire next image
     VkResult result;
     result = vkAcquireNextImageKHR(_device.handle(), _swapchain.handle(), UINT32_MAX, 
-        _image_available_semaphores[_current_frame].handle(), VK_NULL_HANDLE, &_available_image_index
+        _image_available_semaphores[_current_index].handle(), VK_NULL_HANDLE, &_available_image_index
     );
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         rebuild();
         return nullptr;
     } else if (result != VK_SUCCESS) {
-        std::cerr << "failed to acquire swapchain image" << std::endl;
+        core::debug::Logger::get_singleton().error("Failed to acquire swapchain image");
+        
         return nullptr;
     }
 
-    vkResetFences(_device.handle(), 1, &_in_flight_fences[_current_frame].handle());
-    vkResetCommandBuffer(_command_buffers[_current_frame].handle(), 0);
+    vkResetFences(_device.handle(), 1, &_in_flight_fences[_current_index].handle());
+    vkResetCommandBuffer(_command_buffers[_current_index].handle(), 0);
 
     VkCommandBufferBeginInfo cb_begin_info = wk::CommandBufferBeginInfo{}.to_vk();
-    result = vkBeginCommandBuffer(_command_buffers[_current_frame].handle(), &cb_begin_info);
+    result = vkBeginCommandBuffer(_command_buffers[_current_index].handle(), &cb_begin_info);
     if (result != VK_SUCCESS) {
-        std::cerr << "could not begin command buffer" << std::endl;
+        core::debug::Logger::get_singleton().error("Could not begin command buffer");
         return nullptr;
     }
 
@@ -214,7 +217,7 @@ void* VulkanViewport::begin_frame(const core::graphics::Pipeline& pipeline) {
         .set_clear_values(static_cast<uint32_t>(clear_values.size()), clear_values.data())
         .to_vk();
 
-    vkCmdBeginRenderPass(_command_buffers[_current_frame].handle(), 
+    vkCmdBeginRenderPass(_command_buffers[_current_index].handle(), 
         &rp_begin_info,
         VK_SUBPASS_CONTENTS_INLINE
     );
@@ -230,38 +233,38 @@ void* VulkanViewport::begin_frame(const core::graphics::Pipeline& pipeline) {
         .set_offset({0,0})
         .set_extent(_swapchain.extent())
         .to_vk();
-    vkCmdSetViewport(_command_buffers[_current_frame].handle(), 0, 1, &viewport);
-    vkCmdSetScissor(_command_buffers[_current_frame].handle(), 0, 1, &scissor);
+    vkCmdSetViewport(_command_buffers[_current_index].handle(), 0, 1, &viewport);
+    vkCmdSetScissor(_command_buffers[_current_index].handle(), 0, 1, &scissor);
 
-    vkCmdBindPipeline(_command_buffers[_current_frame].handle(), VK_PIPELINE_BIND_POINT_GRAPHICS, static_cast<VkPipeline>(pipeline.native_pipeline()));
+    vkCmdBindPipeline(_command_buffers[_current_index].handle(), VK_PIPELINE_BIND_POINT_GRAPHICS, static_cast<VkPipeline>(pipeline.native_pipeline()));
 
-    return static_cast<void*>(_command_buffers[_current_frame].handle());
+    return static_cast<void*>(_command_buffers[_current_index].handle());
 }
 
 void VulkanViewport::submit_draws(uint32_t index_count) {
-    vkCmdDrawIndexed(_command_buffers[_current_frame].handle(), index_count, 1, 0, 0, 0);
+    vkCmdDrawIndexed(_command_buffers[_current_index].handle(), index_count, 1, 0, 0, 0);
 }
 
 void VulkanViewport::end_frame() {
-    vkCmdEndRenderPass(_command_buffers[_current_frame].handle());
-    VkResult result = vkEndCommandBuffer(_command_buffers[_current_frame].handle());
+    vkCmdEndRenderPass(_command_buffers[_current_index].handle());
+    VkResult result = vkEndCommandBuffer(_command_buffers[_current_index].handle());
     if (result != VK_SUCCESS) {
-        std::cerr << "failed to end command buffer" << std::endl;
+        core::debug::Logger::get_singleton().error("Failed to end command buffer");
     }
 
-    std::vector<VkCommandBuffer> gq_command_buffers = { _command_buffers[_current_frame].handle() };
-    std::vector<VkSemaphore> gq_wait_semaphores = { _image_available_semaphores[_current_frame].handle() };
+    std::vector<VkCommandBuffer> gq_command_buffers = { _command_buffers[_current_index].handle() };
+    std::vector<VkSemaphore> gq_wait_semaphores = { _image_available_semaphores[_current_index].handle() };
     std::vector<VkPipelineStageFlags> gq_wait_stage_flags = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-    std::vector<VkSemaphore> gq_signal_semaphores = { _render_finished_semaphores[_current_frame].handle() };
+    std::vector<VkSemaphore> gq_signal_semaphores = { _render_finished_semaphores[_current_index].handle() };
     VkSubmitInfo gq_submit_info = wk::GraphicsQueueSubmitInfo{}
         .set_command_buffers(static_cast<uint32_t>(gq_command_buffers.size()), gq_command_buffers.data())
         .set_wait_semaphores(static_cast<uint32_t>(gq_wait_semaphores.size()), gq_wait_semaphores.data())
         .set_wait_dst_stage_masks(static_cast<uint32_t>(gq_wait_stage_flags.size()), gq_wait_stage_flags.data())
         .set_signal_semaphores(static_cast<uint32_t>(gq_signal_semaphores.size()), gq_signal_semaphores.data())
         .to_vk();
-    result = vkQueueSubmit(_device.graphics_queue().handle(), 1, &gq_submit_info, _in_flight_fences[_current_frame].handle());
+    result = vkQueueSubmit(_device.graphics_queue().handle(), 1, &gq_submit_info, _in_flight_fences[_current_index].handle());
     if (result != VK_SUCCESS) {
-        std::cerr << "failed to submit queue" << std::endl;
+        core::debug::Logger::get_singleton().error("Failed to submit queue");
     }
 
     std::vector<VkSwapchainKHR> pq_swapchains = { _swapchain.handle() };
@@ -275,9 +278,9 @@ void VulkanViewport::end_frame() {
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         rebuild();
     } else if (result != VK_SUCCESS) {
-        std::cerr << "failed to present" << std::endl;
+        core::debug::Logger::get_singleton().error("Failed to present");
     } else {
-        _current_frame = (_current_frame + 1) % _max_in_flight;
+        _current_index = (_current_index + 1) % _max_in_flight;
     }
 }
 
@@ -295,8 +298,8 @@ void VulkanViewport::rebuild() {
     vkDeviceWaitIdle(_device.handle());
 
     _framebuffers.clear();
-    _image_views.clear();
-    _images.clear();
+    _depth_image_views.clear();
+    _depth_images.clear();
 
     wk::PhysicalDeviceSurfaceSupport support = wk::GetPhysicalDeviceSurfaceSupport(_physical_device.handle(), _surface.handle());
     _present_mode = wk::ChooseSurfacePresentationMode(support.present_modes);
@@ -320,16 +323,16 @@ void VulkanViewport::rebuild() {
     );
     _swapchain = std::move(new_swapchain);
 
-    _images.clear();
-    _image_views.clear();
+    _depth_images.clear();
+    _depth_image_views.clear();
     _framebuffers.clear();
-    _images.reserve(_swapchain.image_views().size());
-    _image_views.reserve(_swapchain.image_views().size());
+    _depth_images.reserve(_swapchain.image_views().size());
+    _depth_image_views.reserve(_swapchain.image_views().size());
     _framebuffers.reserve(_swapchain.image_views().size());
 
     for (size_t i = 0; i < _swapchain.image_views().size(); ++i) {
         // depth image
-        _images.emplace_back(
+        _depth_images.emplace_back(
             _allocator.handle(),
             wk::ImageCreateInfo{}
                 .set_image_type(VK_IMAGE_TYPE_2D)
@@ -349,10 +352,10 @@ void VulkanViewport::rebuild() {
         );
 
         // depth view
-        _image_views.emplace_back(
+        _depth_image_views.emplace_back(
             _device.handle(),
             wk::ImageViewCreateInfo{}
-                .set_image(_images.back().handle())
+                .set_image(_depth_images.back().handle())
                 .set_view_type(VK_IMAGE_VIEW_TYPE_2D)
                 .set_format(_depth_format)
                 .set_components(wk::ComponentMapping::identity().to_vk())
@@ -371,7 +374,7 @@ void VulkanViewport::rebuild() {
         // framebuffer (color and depth)
         std::vector<VkImageView> attachments = {
             _swapchain.image_views()[i],
-            _image_views.back().handle()
+            _depth_image_views.back().handle()
         };
 
         _framebuffers.emplace_back(

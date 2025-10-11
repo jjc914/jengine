@@ -37,6 +37,10 @@ public:
         const Pipeline& render_pass,
         uint32_t width, uint32_t height
     ) const = 0;
+    virtual std::unique_ptr<core::graphics::RenderTarget> create_texture_render_target(
+        const core::graphics::Pipeline& pipeline,
+        uint32_t width, uint32_t height
+    ) const = 0;
     virtual std::unique_ptr<DescriptorSetLayout> create_descriptor_set_layout(
         const DescriptorLayoutDescription& description
     ) const = 0;

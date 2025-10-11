@@ -5,6 +5,7 @@
 #include "vulkan_shader.hpp"
 #include "vulkan_mesh_buffer.hpp"
 #include "vulkan_viewport.hpp"
+#include "vulkan_texture_render_target.hpp"
 #include "vulkan_material.hpp"
 #include "vulkan_descriptor_set_layout.hpp"
 #include "convert_vulkan.hpp"
@@ -206,6 +207,16 @@ std::unique_ptr<core::graphics::RenderTarget> VulkanDevice::create_viewport(
 ) const {
     return std::make_unique<VulkanViewport>(
         *this, window, pipeline,
+        width, height, 3
+    );
+}
+
+std::unique_ptr<core::graphics::RenderTarget> VulkanDevice::create_texture_render_target(
+    const core::graphics::Pipeline& pipeline,
+    uint32_t width, uint32_t height
+) const {
+    return std::make_unique<VulkanTextureRenderTarget>(
+        *this, pipeline,
         width, height, 3
     );
 }

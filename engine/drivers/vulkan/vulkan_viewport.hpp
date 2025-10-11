@@ -17,7 +17,7 @@ public:
     VulkanViewport(
         const VulkanDevice& device,
         const core::window::Window& window,
-        const core::graphics::Pipeline& render_pass,
+        const core::graphics::Pipeline& pipeline,
         uint32_t width,
         uint32_t height,
         uint32_t max_in_flight = 1
@@ -30,7 +30,7 @@ public:
 
     void resize(uint32_t width, uint32_t height) override;
     
-    std::string backend_name() const override { return "Vulkan"; }
+    void* native_frame_image_view(uint32_t i) const override { return static_cast<void*>(_depth_image_views[i].handle()); }
 
 private:
     void rebuild();
@@ -46,6 +46,9 @@ private:
     VkSharingMode _queue_family_sharing_mode;
     uint32_t _min_image_count;
 
+    std::vector<wk::Image> _depth_images;
+    std::vector<wk::ImageView> _depth_image_views;
+
     wk::Swapchain _swapchain;
     wk::Queue _present_queue;
 
@@ -54,7 +57,7 @@ private:
     VkFormat _color_format;
     VkColorSpaceKHR _color_space;
     VkFormat _depth_format;
-    uint32_t _current_frame;
+    uint32_t _current_index;
     uint32_t _available_image_index;
 };
 

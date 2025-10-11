@@ -40,27 +40,28 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
                 .to_vk()
         );
 
-        if (_attachment_info[i].usage == core::graphics::ImageUsage::PRESENT || _attachment_info[i].usage == core::graphics::ImageUsage::COLOR) {
-            color_attachment_references.emplace_back(
-            wk::AttachmentReference{}
-                .set_attachment(i)
-                .set_layout(ToVkImageLayout(core::graphics::ImageUsage::COLOR))
-                .to_vk()
-            );
-        }
-        if (_attachment_info[i].usage == core::graphics::ImageUsage::PRESENT) {
-            _present_color_format = _attachment_info[i].format;
-        } else if (_attachment_info[i].usage == core::graphics::ImageUsage::DEPTH) {
+        if (static_cast<uint32_t>(_attachment_info[i].usage & core::graphics::ImageUsage::DEPTH)) {
             if (!has_depth) {
                 depth_attachment_reference = wk::AttachmentReference{}
-                    .set_attachment(i)
-                    .set_layout(ToVkImageLayout(core::graphics::ImageUsage::DEPTH))
+                    .set_attachment(static_cast<uint32_t>(i))
+                    .set_layout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
                     .to_vk();
+
                 _depth_format = _attachment_info[i].format;
                 has_depth = true;
             } else {
-                core::debug::Logger::get_singleton().warn("Multiple depth attachments are not supported. Using the first one");
+                core::debug::Logger::get_singleton().warn("Multiple depth attachments are not supported; ignoring extra depth targets");
             }
+        } 
+        else { // treat everything else as color-like (COLOR, PRESENT, SAMPLING)
+            color_attachment_references.emplace_back(
+                wk::AttachmentReference{}
+                    .set_attachment(static_cast<uint32_t>(i))
+                    .set_layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                    .to_vk()
+            );
+
+            _color_format = _attachment_info[i].format;
         }
     }
 

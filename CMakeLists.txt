@@ -63,7 +63,7 @@ target_sources(engine PRIVATE
     engine/drivers/vulkan/vulkan_pipeline.hpp               engine/drivers/vulkan/vulkan_pipeline.cpp
     engine/drivers/vulkan/vulkan_render_target.hpp
     engine/drivers/vulkan/vulkan_shader.hpp                 engine/drivers/vulkan/vulkan_shader.cpp
-    # engine/drivers/vulkan/vulkan_texture_render_target.hpp  engine/drivers/vulkan/vulkan_texture_render_target.cpp
+    engine/drivers/vulkan/vulkan_texture_render_target.hpp  engine/drivers/vulkan/vulkan_texture_render_target.cpp
     engine/drivers/vulkan/vulkan_viewport.hpp               engine/drivers/vulkan/vulkan_viewport.cpp
 
     engine/drivers/glfw/glfw_window.hpp       engine/drivers/glfw/glfw_window.cpp

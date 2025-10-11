@@ -1,51 +1,47 @@
 #ifndef engine_drivers_vulkan_VULKAN_TEXTURE_RENDER_TARGET_HPP
 #define engine_drivers_vulkan_VULKAN_TEXTURE_RENDER_TARGET_HPP
 
-#include "engine/core/graphics/render_target.hpp"
-
-#include <wk/wulkan.hpp>
-#include <vector>
+#include "vulkan_render_target.hpp"
 
 namespace engine::drivers::vulkan {
 
 class VulkanDevice;
 
-/**
- * @brief Represents an offscreen Vulkan render target that renders into one or more textures.
- *
- * This class is used for post-processing, reflection maps, shadow maps, or any offscreen rendering.
- * It creates its own RenderPass, Framebuffer, and the corresponding color/depth VkImage resources.
- *
- * Typical usage:
- *   - Scene pass: render to VulkanTextureRenderTarget
- *   - Postprocess pass: sample from it and render to Viewport
- */
-class VulkanTextureRenderTarget {
+class VulkanTextureRenderTarget final : public VulkanRenderTarget {
 public:
-    VulkanTextureRenderTarget();
-    ~VulkanTextureRenderTarget() = default;
+    VulkanTextureRenderTarget(
+        const VulkanDevice& device,
+        const core::graphics::Pipeline& pipeline,
+        uint32_t width,
+        uint32_t height,
+        bool use_depth = true,
+        uint32_t max_in_flight = 1
+    );
+    ~VulkanTextureRenderTarget() override = default;
 
-    void begin(VkCommandBuffer cmd) {}
-    void end(VkCommandBuffer cmd) {}
+    void* begin_frame(const core::graphics::Pipeline& pipeline) override;
+    void submit_draws(uint32_t index_count) override;
+    void end_frame() override;
 
-    // const wk::ImageView& color_view() const { return _color_view; }
-    // const wk::ImageView& depth_view() const { return _depth_view; }
-    // const wk::Framebuffer& framebuffer() const { return _framebuffer; }
-    // const wk::RenderPass& render_pass() const { return _render_pass; }
+    void resize(uint32_t width, uint32_t height) override;
+    
+    void* native_frame_image_view(uint32_t i) const override { return static_cast<void*>(_color_image_views[i].handle()); }
 
 private:
-    // const wk::Device& _device;
+    void rebuild();
 
-    // wk::RenderPass _render_pass;
-    // wk::Framebuffer _framebuffer;
+    const wk::Allocator& _allocator;
+    VkRenderPass _render_pass;
 
-    // wk::Image _color_image;
-    // wk::ImageView _color_view;
+    std::vector<wk::Image> _color_images;
+    std::vector<wk::ImageView> _color_image_views;
+    std::vector<wk::Image> _depth_images;
+    std::vector<wk::ImageView> _depth_image_views;
 
-    // wk::Image _depth_image;
-    // wk::ImageView _depth_view;
+    VkFormat _color_format;
+    VkFormat _depth_format;
 };
 
 } // namespace engine::drivers::vulkan
 
-#endif // engine_drivers_vulkan_VULKAN_TEXTURE_RENDER_TARGET_HPP
+#endif

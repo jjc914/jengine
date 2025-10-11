@@ -38,13 +38,30 @@ enum class ColorSpace {
     UNKNOWN
 };
 
-enum class ImageUsage {
+enum class ImageUsage : uint32_t {
     UNDEFINED = 0,
-    COLOR,
-    DEPTH,
-    PRESENT,
-    STORAGE,
+
+    COLOR     = 1 << 0,
+    DEPTH     = 1 << 1,
+    PRESENT   = 1 << 2,
+    STORAGE   = 1 << 3,
+    SAMPLING  = 1 << 4
 };
+
+inline ImageUsage operator|(ImageUsage a, ImageUsage b) {
+    return static_cast<ImageUsage>(
+        static_cast<std::underlying_type_t<ImageUsage>>(a) |
+        static_cast<std::underlying_type_t<ImageUsage>>(b)
+    );
+}
+inline ImageUsage& operator|=(ImageUsage& a, ImageUsage b) { a = a | b; return a; }
+
+inline ImageUsage operator&(ImageUsage a, ImageUsage b) {
+    return static_cast<ImageUsage>(
+        static_cast<std::underlying_type_t<ImageUsage>>(a) &
+        static_cast<std::underlying_type_t<ImageUsage>>(b)
+    );
+}
 
 struct ImageAttachmentInfo {
     ImageFormat format;

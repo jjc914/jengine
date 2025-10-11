@@ -11,6 +11,8 @@
 
 #include <wk/wulkan.hpp>
 
+#include <imgui.h>
+
 #include <memory>
 
 namespace editor::ui {
@@ -29,8 +31,14 @@ public:
     void begin_frame();
     void end_frame(void* cb);
 
+    ImTextureID register_texture(VkImageView image_view);
+    void unregister_texture(ImTextureID texture_id);
+
 private:
     VkDevice _device;
+    VkDescriptorSet _descriptor_set;
+    wk::Sampler _sampler;
+    std::vector<ImTextureID> _registered_textures;
 };
 
 } // namespace editor::ui

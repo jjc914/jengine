@@ -35,7 +35,7 @@ public:
     const wk::DescriptorPool& descriptor_pool() const { return _descriptor_pool; }
     const wk::PipelineLayout& pipeline_layout() const { return _pipeline_layout; }
 
-    core::graphics::ImageFormat present_color_format() const override { return _present_color_format; }
+    core::graphics::ImageFormat color_format() const override { return _color_format; }
     core::graphics::ImageFormat depth_format() const override { return _depth_format; }
 
     void* native_pipeline() const override { return static_cast<void*>(_pipeline.handle()); }
@@ -52,7 +52,7 @@ private:
     wk::Pipeline _pipeline;
 
     std::vector<core::graphics::ImageAttachmentInfo> _attachment_info;
-    core::graphics::ImageFormat _present_color_format;
+    core::graphics::ImageFormat _color_format;
     core::graphics::ImageFormat _depth_format;
 };
 

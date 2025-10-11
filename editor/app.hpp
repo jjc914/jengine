@@ -43,16 +43,20 @@ public:
 private:
     std::unique_ptr<engine::core::graphics::Instance> _instance;
     std::unique_ptr<engine::core::window::Window> _window;
-    std::unique_ptr<engine::core::graphics::Device> _device;
-    std::unique_ptr<engine::core::graphics::DescriptorSetLayout> _descriptor_layout;
-    std::unique_ptr<engine::core::graphics::RenderTarget> _viewport;
-    std::unique_ptr<engine::core::graphics::Pipeline> _present_pipeline;
+    std::shared_ptr<engine::core::graphics::Device> _device;
 
-    std::unique_ptr<engine::core::graphics::Shader> _vertex_shader;
-    std::unique_ptr<engine::core::graphics::Shader> _fragment_shader;
+    std::shared_ptr<engine::core::graphics::Shader> _vertex_shader;
+    std::shared_ptr<engine::core::graphics::Shader> _fragment_shader;
+    std::shared_ptr<engine::core::graphics::DescriptorSetLayout> _descriptor_layout;
 
-    std::unique_ptr<engine::core::graphics::MeshBuffer> _geometry;
-    std::unique_ptr<engine::core::graphics::Material> _material;
+    std::shared_ptr<engine::core::graphics::Pipeline> _present_pipeline;
+    std::shared_ptr<engine::core::graphics::Pipeline> _editor_camera_pipeline;
+
+    std::shared_ptr<engine::core::graphics::RenderTarget> _viewport;
+    std::shared_ptr<engine::core::graphics::RenderTarget> _editor_camera_target;
+
+    std::shared_ptr<engine::core::graphics::MeshBuffer> _geometry;
+    std::shared_ptr<engine::core::graphics::Material> _material;
 };
 
 } // namespace editor

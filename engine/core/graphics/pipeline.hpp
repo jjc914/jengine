@@ -16,7 +16,7 @@ public:
 
     virtual void bind(void* cb) const = 0;
     
-    virtual core::graphics::ImageFormat present_color_format() const = 0;
+    virtual core::graphics::ImageFormat color_format() const = 0;
     virtual core::graphics::ImageFormat depth_format() const = 0;
     
     virtual std::unique_ptr<Material> create_material(

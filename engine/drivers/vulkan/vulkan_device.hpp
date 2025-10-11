@@ -35,7 +35,12 @@ public:
         const core::graphics::VertexBinding& vertex_binding, 
         const std::vector<core::graphics::ImageAttachmentInfo>& attachment_info
     ) const override;
-    std::unique_ptr<core::graphics::RenderTarget> create_viewport(const core::window::Window& window,
+    std::unique_ptr<core::graphics::RenderTarget> create_viewport(
+        const core::window::Window& window,
+        const core::graphics::Pipeline& pipeline,
+        uint32_t width, uint32_t height
+    ) const override;
+    std::unique_ptr<core::graphics::RenderTarget> create_texture_render_target(
         const core::graphics::Pipeline& pipeline,
         uint32_t width, uint32_t height
     ) const override;

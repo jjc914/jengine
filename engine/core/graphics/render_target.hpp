@@ -23,6 +23,8 @@ public:
 
     virtual void resize(uint32_t width, uint32_t height) = 0;
 
+    virtual uint32_t frame_index() const = 0;
+    virtual void* native_frame_image_view(uint32_t i) const = 0;
     virtual std::string backend_name() const = 0;
 };
 

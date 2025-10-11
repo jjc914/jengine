@@ -16,15 +16,14 @@ public:
     VulkanRenderTarget(const wk::Device& device) : _device(device) {}
     ~VulkanRenderTarget() override = default;
 
+    uint32_t frame_index() const { return _frame_index; }
     std::string backend_name() const override { return "Vulkan"; }
 
 protected:
     const wk::Device& _device;
 
-    std::vector<wk::Image> _images;
-    std::vector<wk::ImageView> _image_views;
     std::vector<wk::Framebuffer> _framebuffers;
-    uint32_t _current_index = 0;
+    uint32_t _frame_index = 0;
 
     std::vector<wk::Semaphore> _image_available_semaphores;
     std::vector<wk::Semaphore> _render_finished_semaphores;

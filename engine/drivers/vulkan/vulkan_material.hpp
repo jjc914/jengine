@@ -24,6 +24,7 @@ public:
     void bind(void* cb) const override;
     void update_uniform_buffer(const void* data) override;
 
+    void* native_descriptor_set() const { return static_cast<void*>(_descriptor_set.handle()); }
     std::string backend_name() const override { return "Vulkan"; }
 
 private:

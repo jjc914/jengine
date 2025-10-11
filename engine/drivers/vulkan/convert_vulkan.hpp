@@ -90,15 +90,31 @@ inline VkFormat ToVkFormat(core::graphics::VertexFormat fmt) {
 
 inline VkImageLayout ToVkImageLayout(core::graphics::ImageUsage usage) {
     using IU = core::graphics::ImageUsage;
-    switch (usage) {
-        case IU::COLOR:   return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        case IU::DEPTH:   return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        case IU::PRESENT: return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        case IU::STORAGE: return VK_IMAGE_LAYOUT_GENERAL;
-        default:
-            ENGINE_ASSERT(false, "Unrecognized ImageUsage enum in ToVkImageLayout()");
-            return VK_IMAGE_LAYOUT_UNDEFINED;
-    }
+
+    // handle composite usages
+    const bool is_color   = static_cast<uint32_t>(usage) & static_cast<uint32_t>(IU::COLOR);
+    const bool is_depth   = static_cast<uint32_t>(usage) & static_cast<uint32_t>(IU::DEPTH);
+    const bool is_present = static_cast<uint32_t>(usage) & static_cast<uint32_t>(IU::PRESENT);
+    const bool is_storage = static_cast<uint32_t>(usage) & static_cast<uint32_t>(IU::STORAGE);
+    const bool is_sampled = static_cast<uint32_t>(usage) & static_cast<uint32_t>(IU::SAMPLING);
+
+    if (is_present)
+        return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    if (is_depth)
+        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    if (is_color && is_sampled)
+        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    if (is_color)
+        return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    if (is_storage)
+        return VK_IMAGE_LAYOUT_GENERAL;
+
+    ENGINE_ASSERT(false, "Unrecognized ImageUsage combination in ToVkImageLayout()");
+    return VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
 inline VkColorSpaceKHR ToVkColorSpace(core::graphics::ColorSpace cs) {
