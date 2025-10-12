@@ -35,7 +35,6 @@ public:
 private:
     void rebuild();
 
-    const wk::ext::glfw::Surface& _surface;
     const wk::PhysicalDevice& _physical_device;
     const wk::Allocator& _allocator;
     const wk::CommandPool& _command_pool;
@@ -46,6 +45,7 @@ private:
     VkSharingMode _queue_family_sharing_mode;
     uint32_t _min_image_count;
 
+    wk::ext::glfw::Surface _surface;
     std::vector<wk::Image> _depth_images;
     std::vector<wk::ImageView> _depth_image_views;
 

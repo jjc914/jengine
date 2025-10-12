@@ -65,6 +65,8 @@ public:
 
     const wk::DeviceQueueFamilyIndices& queue_families() const { return _queue_families; }
 
+    const wk::Instance& instance() const { return _instance; }
+
     void* native_device() const override { return static_cast<void*>(_device.handle()); }
     void* native_physical_device() const override { return static_cast<void*>(_physical_device.handle()); }
     void* native_descriptor_pool() const override { return static_cast<void*>(_descriptor_pool.handle()); }
@@ -73,6 +75,8 @@ public:
     std::string backend_name() const override { return "Vulkan"; }
 
 private:
+    const wk::Instance& _instance;
+
     wk::PhysicalDevice _physical_device;
     wk::Device _device;
 

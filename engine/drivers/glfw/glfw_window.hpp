@@ -20,15 +20,11 @@ public:
     void wait_events() override;
     void poll() override;
 
-    void query_support(const core::graphics::Device& device);
-
-    const wk::ext::glfw::Surface& surface() const override { return _surface; }
-
     uint32_t width() const override { return _width; }
     uint32_t height() const override { return _height; }
-    const core::graphics::ImageFormat color_format() const { return _color_format; }
-    const core::graphics::ColorSpace color_space() const { return _color_space; }
-    const core::graphics::ImageFormat depth_format() const { return _depth_format; }
+    // const core::graphics::ImageFormat color_format() const { return _color_format; }
+    // const core::graphics::ColorSpace color_space() const { return _color_space; }
+    // const core::graphics::ImageFormat depth_format() const { return _depth_format; }
 
     void* native_window() const override { return static_cast<void*>(_window); }
 

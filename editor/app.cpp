@@ -4,10 +4,10 @@
 #include "engine/drivers/vulkan/vulkan_viewport.hpp"
 #include "engine/drivers/vulkan/vulkan_texture_render_target.hpp"
 #include "engine/drivers/glfw/glfw_window.hpp"
-
-#include "engine/core/debug/logger.hpp"
 #include "engine/core/graphics/vertex_types.hpp"
 #include "engine/core/graphics/image_types.hpp"
+
+#include "engine/core/debug/logger.hpp"
 #include "editor/gui/imgui_layer.hpp"
 
 #include <imgui.h>
@@ -42,7 +42,6 @@ int App::run() {
 
     // device
     _device = _instance->create_device(*_window);
-    _window->query_support(*_device);
 
     // shaders
     _vertex_shader = _device->create_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/triangle.vert.spv");
@@ -325,8 +324,6 @@ int App::run() {
 
         // End ImGui frame
         gui_layer.end_frame(present_cb);
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
         _viewport->end_frame();
 
     }

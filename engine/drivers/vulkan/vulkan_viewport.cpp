@@ -19,7 +19,7 @@ VulkanViewport::VulkanViewport(
     uint32_t width,
     uint32_t height,
     uint32_t max_in_flight)
-    : VulkanRenderTarget(device.device()), _physical_device(device.physical_device()), _surface(window.surface()),
+    : VulkanRenderTarget(device.device()), _physical_device(device.physical_device()),
       _allocator(device.allocator()), _command_pool(device.command_pool()), _descriptor_pool(device.descriptor_pool()),
       _graphics_queue(device.graphics_queue()), _render_pass(static_cast<VkRenderPass>(pipeline.native_render_pass())),
       _current_index(0)
@@ -27,6 +27,8 @@ VulkanViewport::VulkanViewport(
     _width = width;
     _height = height;
     _max_in_flight = max_in_flight;
+
+    _surface = wk::ext::glfw::Surface(device.instance().handle(), static_cast<GLFWwindow*>(window.native_window()));
 
     // get present queue
     uint32_t present_family;
@@ -38,7 +40,7 @@ VulkanViewport::VulkanViewport(
 
     for (uint32_t i = 0; i < queue_family_count; ++i) {
         VkBool32 supports_present = VK_FALSE;
-        vkGetPhysicalDeviceSurfaceSupportKHR(_physical_device.handle(), i, window.surface().handle(), &supports_present);
+        vkGetPhysicalDeviceSurfaceSupportKHR(_physical_device.handle(), i, _surface.handle(), &supports_present);
         if (supports_present) {
             present_family = i;
             break;

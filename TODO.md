@@ -19,6 +19,7 @@
 
 ## engine
 - [ ] texture render targets for off-screen rendering
+- [ ] seperate pipeline from render pass for 
 
 ## editor
 - [ ] create `editor/gui/panels/**.hpp/cpp` for editor panels (inspector, viewport, console, etc.)

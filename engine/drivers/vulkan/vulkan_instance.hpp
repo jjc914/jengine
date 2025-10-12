@@ -19,6 +19,8 @@ public:
     std::unique_ptr<core::graphics::Device> create_device() const override { return nullptr; } // TODO: implement this
     std::unique_ptr<core::graphics::Device> create_device(const core::window::Window& window) const override;
 
+    const wk::Instance& instance() const { return _instance; };
+
     void* native_instance() const override { return static_cast<void*>(_instance.handle()); }
     std::string backend_name() const override { return "Vulkan"; }
 private:

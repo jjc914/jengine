@@ -18,13 +18,16 @@
 
 namespace engine::drivers::vulkan {
 
-VulkanDevice::VulkanDevice(const VulkanInstance& instance, const core::window::Window& window) {
+VulkanDevice::VulkanDevice(const VulkanInstance& instance, const core::window::Window& window)
+    : _instance(instance.instance())
+{
     // physical device
     VkPhysicalDeviceFeatures2 physical_device_features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
     _physical_device = wk::PhysicalDevice(static_cast<VkInstance>(instance.native_instance()),
         wk::GetRequiredDeviceExtensions(), &physical_device_features,
         &wk::DefaultPhysicalDeviceFeatureScorer
     );
+    wk::ext::glfw::Surface surface(static_cast<VkInstance>(instance.native_instance()), static_cast<GLFWwindow*>(window.native_window()));
     
     _queue_families = wk::FindQueueFamilies(_physical_device.handle());
 
@@ -39,7 +42,7 @@ VulkanDevice::VulkanDevice(const VulkanInstance& instance, const core::window::W
     // TODO: surface dependency in device, find a way to better handle/decouple (device shouldnt be dependent on presentation capability, can present to tex) ()
     for (uint32_t i = 0; i < queue_family_count; ++i) {
         VkBool32 supports_present = VK_FALSE;
-        vkGetPhysicalDeviceSurfaceSupportKHR(_physical_device.handle(), i, window.surface().handle(), &supports_present);
+        vkGetPhysicalDeviceSurfaceSupportKHR(_physical_device.handle(), i, surface.handle(), &supports_present);
         if (supports_present) {
             _present_family = i;
             break;
@@ -48,13 +51,13 @@ VulkanDevice::VulkanDevice(const VulkanInstance& instance, const core::window::W
 
     // cache supported formats
     uint32_t format_count = 0;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(_physical_device.handle(), window.surface().handle(), &format_count, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(_physical_device.handle(), surface.handle(), &format_count, nullptr);
     if (format_count == 0) {
         core::debug::Logger::get_singleton().fatal("No surface formats available to this physical device");
     }
 
     std::vector<VkSurfaceFormatKHR> formats(format_count);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(_physical_device.handle(), window.surface().handle(), &format_count, formats.data());
+    vkGetPhysicalDeviceSurfaceFormatsKHR(_physical_device.handle(), surface.handle(), &format_count, formats.data());
 
     if (format_count == 1 && formats[0].format == VK_FORMAT_UNDEFINED) {
         _present_format = FromImageVkFormat(VK_FORMAT_R8G8B8A8_UNORM);

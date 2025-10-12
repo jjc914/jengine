@@ -57,14 +57,14 @@ void GlfwWindow::poll() {
     _height = static_cast<uint32_t>(height);
 }
 
-void GlfwWindow::query_support(const core::graphics::Device& device) {
-    wk::PhysicalDeviceSurfaceSupport support = wk::GetPhysicalDeviceSurfaceSupport(
-        static_cast<VkPhysicalDevice>(device.native_physical_device()), _surface.handle()
-    );
-    VkSurfaceFormatKHR surface_format = wk::ChooseSurfaceFormat(support.formats);
-    _color_format = vulkan::FromImageVkFormat(surface_format.format);
-    _color_space = vulkan::FromVkColorSpace(surface_format.colorSpace);
-    _depth_format = vulkan::FromImageVkFormat(wk::ChooseDepthFormat(static_cast<VkPhysicalDevice>(device.native_physical_device())));
-}
+// void GlfwWindow::query_support(const core::graphics::Device& device) {
+//     wk::PhysicalDeviceSurfaceSupport support = wk::GetPhysicalDeviceSurfaceSupport(
+//         static_cast<VkPhysicalDevice>(device.native_physical_device()), _surface.handle()
+//     );
+//     VkSurfaceFormatKHR surface_format = wk::ChooseSurfaceFormat(support.formats);
+//     _color_format = vulkan::FromImageVkFormat(surface_format.format);
+//     _color_space = vulkan::FromVkColorSpace(surface_format.colorSpace);
+//     _depth_format = vulkan::FromImageVkFormat(wk::ChooseDepthFormat(static_cast<VkPhysicalDevice>(device.native_physical_device())));
+// }
 
 } // namespace drivers::glfw
