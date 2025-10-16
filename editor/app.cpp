@@ -76,10 +76,10 @@ int App::run() {
     // pipelines
     std::vector<engine::core::graphics::ImageAttachmentInfo> present_attachments = {
         engine::core::graphics::ImageAttachmentInfo{}
-            .set_format(_window->color_format())
+            .set_format(_device->present_format())
             .set_usage(engine::core::graphics::ImageUsage::PRESENT),
         engine::core::graphics::ImageAttachmentInfo{}
-            .set_format(_window->depth_format())
+            .set_format(_device->depth_format())
             .set_usage(engine::core::graphics::ImageUsage::DEPTH)
     };
 
@@ -88,7 +88,7 @@ int App::run() {
             .set_format(engine::core::graphics::ImageFormat::RGBA8_UNORM)
             .set_usage(engine::core::graphics::ImageUsage::COLOR | engine::core::graphics::ImageUsage::SAMPLING),
         engine::core::graphics::ImageAttachmentInfo{}
-            .set_format(_window->depth_format())
+            .set_format(_device->depth_format())
             .set_usage(engine::core::graphics::ImageUsage::DEPTH)
     };
 

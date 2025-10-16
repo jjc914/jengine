@@ -22,9 +22,6 @@ public:
 
     uint32_t width() const override { return _width; }
     uint32_t height() const override { return _height; }
-    // const core::graphics::ImageFormat color_format() const { return _color_format; }
-    // const core::graphics::ColorSpace color_space() const { return _color_space; }
-    // const core::graphics::ImageFormat depth_format() const { return _depth_format; }
 
     void* native_window() const override { return static_cast<void*>(_window); }
 
@@ -36,10 +33,6 @@ private:
 
     uint32_t _width = 0;
     uint32_t _height = 0;
-
-    core::graphics::ImageFormat _color_format = core::graphics::ImageFormat::UNDEFINED;
-    core::graphics::ColorSpace _color_space = core::graphics::ColorSpace::UNKNOWN;
-    core::graphics::ImageFormat _depth_format = core::graphics::ImageFormat::UNDEFINED;
 };
 
 } // namespace engine::core::window:

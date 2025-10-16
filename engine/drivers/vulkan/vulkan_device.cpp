@@ -39,7 +39,15 @@ VulkanDevice::VulkanDevice(const VulkanInstance& instance, const core::window::W
     std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
     vkGetPhysicalDeviceQueueFamilyProperties(_physical_device.handle(), &queue_family_count, queue_families.data());
 
-    // TODO: surface dependency in device, find a way to better handle/decouple (device shouldnt be dependent on presentation capability, can present to tex) ()
+    // get surface information (assume all are compatible)
+    wk::PhysicalDeviceSurfaceSupport support = wk::GetPhysicalDeviceSurfaceSupport(
+        _physical_device.handle(), surface.handle()
+    );
+    VkSurfaceFormatKHR surface_format = wk::ChooseSurfaceFormat(support.formats);
+    _present_format = vulkan::FromImageVkFormat(surface_format.format);
+    _present_color_space = vulkan::FromVkColorSpace(surface_format.colorSpace);
+    _depth_format = vulkan::FromImageVkFormat(wk::ChooseDepthFormat(_physical_device.handle()));
+
     for (uint32_t i = 0; i < queue_family_count; ++i) {
         VkBool32 supports_present = VK_FALSE;
         vkGetPhysicalDeviceSurfaceSupportKHR(_physical_device.handle(), i, surface.handle(), &supports_present);

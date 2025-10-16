@@ -2,6 +2,7 @@
 #define engine_core_graphics_DEVICE_HPP
 
 #include "vertex_types.hpp"
+#include "image_types.hpp"
 #include "shader.hpp"
 #include "mesh_buffer.hpp"
 #include "pipeline.hpp"
@@ -48,6 +49,9 @@ public:
     virtual void* begin_command_buffer() const = 0;
     virtual void end_command_buffer(void* cb) const = 0;
 
+    virtual ImageFormat present_format() const = 0;
+    virtual ColorSpace present_color_space() const = 0;
+    virtual ImageFormat depth_format() const = 0;
     virtual void* native_device() const = 0;
     virtual void* native_physical_device() const = 0;
     virtual void* native_descriptor_pool() const = 0;

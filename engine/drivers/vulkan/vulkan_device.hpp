@@ -59,14 +59,14 @@ public:
     const wk::DescriptorPool& descriptor_pool() const { return _descriptor_pool; }
     const wk::Queue& graphics_queue() const { return _graphics_queue; }
     uint32_t present_family() const { return _present_family; }
-    core::graphics::ImageFormat present_format() const { return _present_format; }
-    core::graphics::ColorSpace present_color_space() const { return _present_color_space; }
-    core::graphics::ImageFormat depth_format() const { return _depth_format; }
 
     const wk::DeviceQueueFamilyIndices& queue_families() const { return _queue_families; }
 
     const wk::Instance& instance() const { return _instance; }
 
+    core::graphics::ImageFormat present_format() const override { return _present_format; }
+    core::graphics::ColorSpace present_color_space() const override { return _present_color_space; }
+    core::graphics::ImageFormat depth_format() const override { return _depth_format; }
     void* native_device() const override { return static_cast<void*>(_device.handle()); }
     void* native_physical_device() const override { return static_cast<void*>(_physical_device.handle()); }
     void* native_descriptor_pool() const override { return static_cast<void*>(_descriptor_pool.handle()); }
