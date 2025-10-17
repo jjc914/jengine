@@ -22,7 +22,7 @@ VulkanDevice::VulkanDevice(const VulkanInstance& instance, const core::window::W
     : _instance(instance.instance())
 {
     // physical device
-    VkPhysicalDeviceFeatures2 physical_device_features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+    VkPhysicalDeviceFeatures2 physical_device_features = wk::PhysicalDeviceFeatures2{}.to_vk();
     _physical_device = wk::PhysicalDevice(static_cast<VkInstance>(instance.native_instance()),
         wk::GetRequiredDeviceExtensions(), &physical_device_features,
         &wk::DefaultPhysicalDeviceFeatureScorer

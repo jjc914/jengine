@@ -13,7 +13,7 @@ namespace engine::drivers::glfw {
 
 class GlfwWindow final : public core::window::Window {
 public:
-    GlfwWindow(void* instance, const std::string& title, uint32_t width, uint32_t height);
+    GlfwWindow(const std::string& title, uint32_t width, uint32_t height);
     ~GlfwWindow() override;
 
     bool should_close() const override;

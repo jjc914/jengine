@@ -18,8 +18,7 @@
 - [ ] add physics library integration
 
 ## engine
-- [ ] texture render targets for off-screen rendering
-- [ ] seperate pipeline from render pass for 
+- [x] texture render targets for off-screen rendering
 
 ## editor
 - [ ] create `editor/gui/panels/**.hpp/cpp` for editor panels (inspector, viewport, console, etc.)

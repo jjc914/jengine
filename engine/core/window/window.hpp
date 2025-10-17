@@ -24,9 +24,6 @@ public:
 
     virtual uint32_t width() const = 0;
     virtual uint32_t height() const = 0;
-    // virtual const graphics::ImageFormat color_format() const = 0;
-    // virtual const graphics::ColorSpace color_space() const = 0;
-    // virtual const graphics::ImageFormat depth_format() const = 0;
 
     virtual void* native_window() const = 0;
 

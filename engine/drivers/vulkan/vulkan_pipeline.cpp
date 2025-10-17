@@ -18,7 +18,6 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
       _attachment_info(attachment_info)
 {
     ENGINE_ASSERT(!attachment_info.empty(), "VulkanPipeline requires at least one image attachment");
-    ENGINE_ASSERT(!vertex_binding.attributes.empty(), "VulkanPipeline requires at least one vertex attribute");
 
     // render pass
     std::vector<VkAttachmentDescription> attachment_descriptions;
@@ -36,7 +35,7 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
                 .set_stencil_load_op(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
                 .set_stencil_store_op(VK_ATTACHMENT_STORE_OP_DONT_CARE)
                 .set_initial_layout(VK_IMAGE_LAYOUT_UNDEFINED)
-                .set_final_layout(ToVkImageLayout(_attachment_info[i].usage))
+                .set_final_layout(ToVkFinalLayout(_attachment_info[i].usage))
                 .to_vk()
         );
 
@@ -57,7 +56,7 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
             color_attachment_references.emplace_back(
                 wk::AttachmentReference{}
                     .set_attachment(static_cast<uint32_t>(i))
-                    .set_layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                    .set_layout(ToVkSubpassLayout(_attachment_info[i].usage))
                     .to_vk()
             );
 
@@ -67,11 +66,19 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
 
     ENGINE_ASSERT(has_depth || !color_attachment_references.empty(), "Pipeline must have at least one color or depth attachment");
 
-    VkSubpassDescription subpass = wk::SubpassDescription{}
-        .set_pipeline_bind_point(VK_PIPELINE_BIND_POINT_GRAPHICS)
-        .set_color_attachments(color_attachment_references.size(), color_attachment_references.data())
-        .set_depth_stencil_attachment(&depth_attachment_reference)
-        .to_vk();
+    VkSubpassDescription subpass;
+    if (has_depth) {
+        subpass = wk::SubpassDescription{}
+            .set_pipeline_bind_point(VK_PIPELINE_BIND_POINT_GRAPHICS)
+            .set_color_attachments(color_attachment_references.size(), color_attachment_references.data())
+            .set_depth_stencil_attachment(&depth_attachment_reference)
+            .to_vk();
+    } else {
+        subpass = wk::SubpassDescription{}
+            .set_pipeline_bind_point(VK_PIPELINE_BIND_POINT_GRAPHICS)
+            .set_color_attachments(color_attachment_references.size(), color_attachment_references.data())
+            .to_vk();
+    }
 
     VkSubpassDependency dependency = wk::SubpassDependency{}
         .set_src_subpass(VK_SUBPASS_EXTERNAL)

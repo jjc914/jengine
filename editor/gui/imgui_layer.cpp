@@ -26,7 +26,7 @@ static void CheckVkResult(VkResult err) {
 
 }
 
-namespace editor::ui {
+namespace editor::gui {
 
 ImGuiLayer::ImGuiLayer(const engine::core::graphics::Instance& instance,
     const engine::core::graphics::Device& device,
@@ -79,8 +79,6 @@ ImGuiLayer::ImGuiLayer(const engine::core::graphics::Instance& instance,
             .set_border_color(VK_BORDER_COLOR_INT_OPAQUE_BLACK)
             .to_vk()
     );
-
-    // _descriptor_set = ImGui_ImplVulkan_AddTexture(_sampler.handle(), )
 }
 
 ImGuiLayer::~ImGuiLayer() {
@@ -127,4 +125,4 @@ void ImGuiLayer::unregister_texture(ImTextureID texture_id) {
     );
 }
 
-} // namespace editor::ui
+} // namespace editor::gui

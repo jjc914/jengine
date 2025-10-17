@@ -42,7 +42,6 @@ target_sources(engine PRIVATE
     engine/core/graphics/descriptor_set_layout.hpp
     engine/core/graphics/descriptor_types.hpp
     engine/core/graphics/device.hpp
-    engine/core/graphics/frame_graph.hpp
     engine/core/graphics/image_types.hpp
     engine/core/graphics/instance.hpp
     engine/core/graphics/material.hpp
@@ -51,6 +50,15 @@ target_sources(engine PRIVATE
     engine/core/graphics/render_target.hpp
     engine/core/graphics/shader.hpp
     engine/core/graphics/vertex_types.hpp
+
+    engine/core/renderer/renderer.hpp
+    engine/core/renderer/frame_graph.hpp
+    engine/core/renderer/cache/material_cache.hpp
+    engine/core/renderer/cache/mesh_cache.hpp
+    engine/core/renderer/cache/pipeline_cache.hpp
+    engine/core/renderer/cache/shader_cache.hpp
+
+    engine/core/scene/scene.hpp
 
     engine/import/mesh.hpp   engine/import/mesh.cpp
 
@@ -73,7 +81,12 @@ target_link_libraries(engine PUBLIC wulkan simple_ecs tinyobjloader)
 add_executable(editor 
     editor/main.cpp
     editor/app.hpp  editor/app.cpp
-    editor/gui/imgui_layer.hpp  editor/gui/imgui_layer.cpp
+
+    editor/gui/imgui_layer.hpp              editor/gui/imgui_layer.cpp
+    editor/gui/panel.hpp
+    editor/gui/panels/scene_view_panel.hpp
+
+    editor/renderer/editor_renderer.hpp  editor/renderer/editor_renderer.cpp
 )
 
 target_compile_definitions(editor PUBLIC WLK_ENABLE_VALIDATION_LAYERS)

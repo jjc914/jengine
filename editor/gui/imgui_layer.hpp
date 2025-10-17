@@ -1,5 +1,5 @@
-#ifndef editor_ui_IMGUI_LAYER_HPP
-#define editor_ui_IMGUI_LAYER_HPP
+#ifndef editor_gui_IMGUI_LAYER_HPP
+#define editor_gui_IMGUI_LAYER_HPP
 
 #include "engine/core/debug/assert.hpp"
 #include "engine/core/debug/logger.hpp"
@@ -15,7 +15,7 @@
 
 #include <memory>
 
-namespace editor::ui {
+namespace editor::gui {
 
 class ImGuiLayer {
 public:
@@ -41,6 +41,6 @@ private:
     std::vector<ImTextureID> _registered_textures;
 };
 
-} // namespace editor::ui
+} // namespace editor::gui
 
-#endif // editor_ui_IMGUI_LAYER_HPP
+#endif // editor_gui_IMGUI_LAYER_HPP

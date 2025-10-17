@@ -95,6 +95,13 @@ struct DescriptorLayoutBinding {
         visibility = v; 
         return *this; 
     }
+
+    bool operator==(const DescriptorLayoutBinding& other) const noexcept {
+        return binding == other.binding &&
+            type == other.type &&
+            count == other.count &&
+            visibility == other.visibility;
+    }
 };
 
 struct DescriptorLayoutDescription {
@@ -126,6 +133,22 @@ struct DescriptorLayoutDescription {
                 .set_visibility(b.visibility)
         );
         return *this;
+    }
+
+    bool operator==(const DescriptorLayoutDescription& other) const noexcept {
+        return bindings == other.bindings;
+    }
+
+    size_t hash() const noexcept {
+        size_t h = 0;
+        for (const auto& b : bindings) {
+            // chat gpt generated hash
+            h ^= std::hash<uint32_t>{}(b.binding) + 0x9e3779b9 + (h << 6) + (h >> 2);
+            h ^= std::hash<uint32_t>{}(static_cast<uint32_t>(b.type)) + 0x9e3779b9 + (h << 6) + (h >> 2);
+            h ^= std::hash<uint32_t>{}(b.count) + 0x9e3779b9 + (h << 6) + (h >> 2);
+            h ^= std::hash<uint32_t>{}(static_cast<uint32_t>(b.visibility)) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        }
+        return h;
     }
 };
 
