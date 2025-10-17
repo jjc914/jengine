@@ -7,9 +7,7 @@ namespace engine::core::scene {
 
 class PerspectiveCamera : public Camera {
 public:
-    PerspectiveCamera(float fov = 45.0f) : _fov(fov) {
-        update_view();
-    }
+    PerspectiveCamera(float fov = 45.0f) : _fov(fov) {}
 
     void resize(uint32_t width, uint32_t height) override {
         _width = width;
@@ -27,7 +25,7 @@ public:
         update_projection();
     }
 
-private:
+protected:
     float _fov;
     float _aspect = 1.0f;
 };

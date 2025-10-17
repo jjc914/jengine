@@ -11,6 +11,8 @@ class InspectorPanel final : public Panel {
 public:
     InspectorPanel() : Panel("Inspector") {}
 
+    void on_gui_focus(GuiContext& context) override {}
+    void on_gui_hover(GuiContext& context) override {}
 protected:
     void on_gui(GuiContext& context) override;
 };

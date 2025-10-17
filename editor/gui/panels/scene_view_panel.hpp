@@ -11,6 +11,8 @@ class SceneViewPanel final : public Panel {
 public:
     SceneViewPanel() : Panel("Scene View") {}
 
+    void on_gui_focus(GuiContext& context) override;
+    void on_gui_hover(GuiContext& context) override;
 protected:
     void on_gui(GuiContext& context) override;
 

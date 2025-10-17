@@ -7,6 +7,7 @@
 #include "panels/console_panel.hpp"
 
 #include "engine/core/debug/assert.hpp"
+#include "engine/core/debug/logger.hpp"
 
 #include <imgui_internal.h>
 #include <backends/imgui_impl_glfw.h>
@@ -167,8 +168,17 @@ void EditorGui::on_gui(GuiContext& context) {
     }
 
     // draw panels
-    for (auto& panel : _panels)
+    for (std::unique_ptr<editor::gui::panels::Panel>& panel : _panels) {
         panel->draw(context);
+        if (panel->is_focused()) {
+            panel->on_gui_focus(context);
+            // engine::core::debug::Logger::get_singleton().info("{} focused", panel->name());
+        }
+        if (panel->is_hovered()) {
+            panel->on_gui_hover(context);
+            // engine::core::debug::Logger::get_singleton().info("{} hovered", panel->name());
+        }
+    }
 
     // render imgui
     ImGui::Render();

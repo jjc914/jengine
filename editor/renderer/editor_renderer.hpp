@@ -16,12 +16,12 @@
 
 #include "engine/core/window/window.hpp"
 #include "engine/core/scene/scene.hpp"
-#include "engine/core/scene/camera.hpp"
 
 #include "engine/core/debug/assert.hpp"
 #include "engine/core/debug/logger.hpp"
 
 #include "editor/gui/editor_gui.hpp"
+#include "editor/scene/editor_camera.hpp"
 
 #include <memory>
 #include <cstdint>
@@ -105,7 +105,7 @@ private:
     std::vector<ImTextureID> _editor_camera_preview_textures;
 
     // scene view camera
-    std::unique_ptr<engine::core::scene::Camera> _editor_view_camera;
+    std::unique_ptr<scene::EditorCamera> _editor_view_camera;
     std::optional<glm::vec2> _pending_editor_view_size;
 };
     

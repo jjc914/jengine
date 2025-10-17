@@ -11,6 +11,8 @@ class ConsolePanel final : public Panel {
 public:
     ConsolePanel() : Panel("Console") {}
 
+    void on_gui_focus(GuiContext& context) override {}
+    void on_gui_hover(GuiContext& context) override {}
 protected:
     void on_gui(GuiContext& context) override;
 };

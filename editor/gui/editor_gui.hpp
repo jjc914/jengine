@@ -11,6 +11,8 @@
 #include "engine/core/debug/assert.hpp"
 #include "engine/core/debug/logger.hpp"
 
+#include "editor/scene/editor_camera.hpp"
+
 #include <wk/wulkan.hpp>
 
 #include <imgui.h>
@@ -21,8 +23,12 @@ namespace editor::gui {
 
 struct GuiContext {
     void* command_buffer;
-    ImTextureID view_texture_id;
-    ImVec2 scene_view_size{0, 0};
+
+    struct SceneView {
+        ImTextureID texture_id;
+        scene::EditorCamera* camera = nullptr;
+        ImVec2 out_size{0, 0};
+    } scene_view;
 };
 
 class EditorGui {

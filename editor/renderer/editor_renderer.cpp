@@ -7,8 +7,10 @@
 #include "editor/components/transform.hpp"
 #include "editor/components/mesh_renderer.hpp"
 
-#include "engine/core/scene/perspective_camera.hpp"
+#include "editor/scene/editor_camera.hpp"
 
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
 #include <glm/gtx/transform.hpp>
 
 namespace editor::renderer {
@@ -163,7 +165,7 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
     }
 
     // create editor view camera
-    _editor_view_camera = std::make_unique<engine::core::scene::PerspectiveCamera>();
+    _editor_view_camera = std::make_unique<scene::EditorCamera>();
     _editor_view_camera->resize(_width, _height);
     _editor_view_camera->look_at(glm::vec3(0.0f));
 }
@@ -217,11 +219,12 @@ void EditorRenderer::render_scene(engine::core::scene::Scene& scene) {
 
             gui::GuiContext context;
             context.command_buffer = cb;
-            context.view_texture_id = _editor_camera_preview_textures[_editor_view_target->frame_index()];
+            context.scene_view.texture_id = _editor_camera_preview_textures[_editor_view_target->frame_index()];
+            context.scene_view.camera = _editor_view_camera.get();
             _editor_gui->on_gui(context);
 
-            uint32_t new_width = std::max(1, static_cast<int>(context.scene_view_size.x));
-            uint32_t new_height = std::max(1, static_cast<int>(context.scene_view_size.y));
+            uint32_t new_width = std::max(1, static_cast<int>(context.scene_view.out_size.x));
+            uint32_t new_height = std::max(1, static_cast<int>(context.scene_view.out_size.y));
             if (new_width != _width || new_height != _height) {
                 _pending_editor_view_size = glm::vec2(new_width, new_height);
             }
@@ -231,6 +234,7 @@ void EditorRenderer::render_scene(engine::core::scene::Scene& scene) {
     engine::core::renderer::RenderPassContext context{};
     _frame_graph.execute(context);
 
+    // handle resize
     if (_pending_editor_view_size) {
         _device->wait_idle();
 

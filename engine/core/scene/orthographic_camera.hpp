@@ -7,9 +7,7 @@ namespace engine::core::scene {
 
 class OrthographicCamera : public Camera {
 public:
-    OrthographicCamera(float size = 10.0f) : _size(size) {
-        update_view();
-    }
+    OrthographicCamera(float size = 10.0f) : _size(size) {}
 
     void resize(uint32_t width, uint32_t height) override {
         _width = width; _height = height;
