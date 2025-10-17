@@ -26,34 +26,36 @@ public:
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoCollapse;
+
         if (ImGui::Begin(_name.c_str(), &_is_visible, flags)) {
+            ImVec2 avail = ImGui::GetContentRegionAvail();
+            ImVec2 origin = ImGui::GetCursorScreenPos();
+
+            ImVec2 min = origin;
+            ImVec2 max = ImVec2(origin.x + avail.x, origin.y + avail.y);
+
             on_gui(context);
-        }
+            
+            ImVec2 mouse = ImGui::GetIO().MousePos;
 
-        ImVec2 avail  = ImGui::GetContentRegionAvail();
-        ImVec2 origin = ImGui::GetCursorScreenPos();
+            _is_hovered = 
+                (mouse.x >= min.x && mouse.x <= max.x &&
+                mouse.y >= min.y && mouse.y <= max.y);
 
-        ImVec2 min = origin;
-        ImVec2 max = ImVec2(origin.x + avail.x, origin.y + avail.y);
-        ImVec2 mouse = ImGui::GetIO().MousePos;
-
-        _is_hovered = 
-            (mouse.x >= min.x && mouse.x <= max.x &&
-            mouse.y >= min.y && mouse.y <= max.y);
-
-        if (_is_hovered
-            && (ImGui::IsMouseClicked(ImGuiMouseButton_Left)
-            || ImGui::IsMouseClicked(ImGuiMouseButton_Right)
-            || ImGui::IsMouseClicked(ImGuiMouseButton_Middle)))
-        {
-            _is_focused = true;
-        }
-        if (!_is_hovered
-            && (ImGui::IsMouseClicked(ImGuiMouseButton_Left)
-            || ImGui::IsMouseClicked(ImGuiMouseButton_Right)
-            || ImGui::IsMouseClicked(ImGuiMouseButton_Middle)))
-        {
-            _is_focused = false;
+            if (_is_hovered
+                && (ImGui::IsMouseClicked(ImGuiMouseButton_Left)
+                || ImGui::IsMouseClicked(ImGuiMouseButton_Right)
+                || ImGui::IsMouseClicked(ImGuiMouseButton_Middle)))
+            {
+                _is_focused = true;
+            }
+            if (!_is_hovered
+                && (ImGui::IsMouseClicked(ImGuiMouseButton_Left)
+                || ImGui::IsMouseClicked(ImGuiMouseButton_Right)
+                || ImGui::IsMouseClicked(ImGuiMouseButton_Middle)))
+            {
+                _is_focused = false;
+            }
         }
 
         ImGui::End();

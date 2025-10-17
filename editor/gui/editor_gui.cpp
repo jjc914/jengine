@@ -172,11 +172,11 @@ void EditorGui::on_gui(GuiContext& context) {
         panel->draw(context);
         if (panel->is_focused()) {
             panel->on_gui_focus(context);
-            // engine::core::debug::Logger::get_singleton().info("{} focused", panel->name());
+            engine::core::debug::Logger::get_singleton().info("{} focused", panel->name());
         }
         if (panel->is_hovered()) {
             panel->on_gui_hover(context);
-            // engine::core::debug::Logger::get_singleton().info("{} hovered", panel->name());
+            engine::core::debug::Logger::get_singleton().info("{} hovered", panel->name());
         }
     }
 
