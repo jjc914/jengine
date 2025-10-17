@@ -59,6 +59,9 @@ target_sources(engine PRIVATE
     engine/core/renderer/cache/shader_cache.hpp
 
     engine/core/scene/scene.hpp
+    engine/core/scene/camera.hpp
+    engine/core/scene/perspective_camera.hpp
+    engine/core/scene/orthographic_camera.hpp
 
     engine/import/mesh.hpp   engine/import/mesh.cpp
 
@@ -82,9 +85,11 @@ add_executable(editor
     editor/main.cpp
     editor/app.hpp  editor/app.cpp
 
-    editor/gui/imgui_layer.hpp              editor/gui/imgui_layer.cpp
-    editor/gui/panel.hpp
-    editor/gui/panels/scene_view_panel.hpp
+    editor/gui/editor_gui.hpp  editor/gui/editor_gui.cpp
+    editor/gui/panels/panel.hpp
+    editor/gui/panels/scene_view_panel.hpp  editor/gui/panels/scene_view_panel.cpp
+    editor/gui/panels/inspector_panel.hpp   editor/gui/panels/inspector_panel.cpp
+    editor/gui/panels/console_panel.hpp     editor/gui/panels/console_panel.cpp
 
     editor/renderer/editor_renderer.hpp  editor/renderer/editor_renderer.cpp
 )

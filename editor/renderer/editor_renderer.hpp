@@ -1,5 +1,5 @@
-#ifndef editor_renderer_RENDERER_HPP
-#define editor_renderer_RENDERER_HPP
+#ifndef editor_renderer_EDITOR_RENDERER_HPP
+#define editor_renderer_EDITOR_RENDERER_HPP
 
 #include "engine/core/graphics/instance.hpp"
 #include "engine/core/graphics/device.hpp"
@@ -16,11 +16,12 @@
 
 #include "engine/core/window/window.hpp"
 #include "engine/core/scene/scene.hpp"
+#include "engine/core/scene/camera.hpp"
 
 #include "engine/core/debug/assert.hpp"
 #include "engine/core/debug/logger.hpp"
 
-#include "editor/gui/imgui_layer.hpp"
+#include "editor/gui/editor_gui.hpp"
 
 #include <memory>
 #include <cstdint>
@@ -70,8 +71,6 @@ public:
     }
 
 private:
-    void rebuild();
-
     uint32_t _width;
     uint32_t _height;
 
@@ -102,10 +101,14 @@ private:
     std::unique_ptr<engine::core::graphics::RenderTarget> _editor_view_target;
 
     // ui
-    std::unique_ptr<gui::ImGuiLayer> _gui_layer;
+    std::unique_ptr<gui::EditorGui> _editor_gui;
     std::vector<ImTextureID> _editor_camera_preview_textures;
+
+    // scene view camera
+    std::unique_ptr<engine::core::scene::Camera> _editor_view_camera;
+    std::optional<glm::vec2> _pending_editor_view_size;
 };
     
-}
+} // namespace editor::renderer
 
-#endif // editor_renderer_RENDERER_HPP
+#endif // editor_renderer_EDITOR_RENDERER_HPP

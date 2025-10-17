@@ -7,7 +7,7 @@
 #include "editor/components/transform.hpp"
 #include "editor/components/mesh_renderer.hpp"
 
-#include "editor/gui/imgui_layer.hpp"
+#include "engine/core/scene/perspective_camera.hpp"
 
 #include <glm/gtx/transform.hpp>
 
@@ -152,22 +152,27 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
     _main_viewport = _device->create_viewport(main_window, _pipeline_cache->get(pipeline_id("editor_present")), _width, _height);
 
     // gui layer
-    _gui_layer = std::make_unique<gui::ImGuiLayer>(*_instance, *_device, _pipeline_cache->get(pipeline_id("editor_present")), main_window);
+    _editor_gui = std::make_unique<gui::EditorGui>(*_instance, *_device, _pipeline_cache->get(pipeline_id("editor_present")), main_window);
 
     // imgui register offscreen textures
     _editor_camera_preview_textures.clear();
     for (uint32_t i = 0; i < _editor_view_target->frame_count(); ++i) {
         _editor_camera_preview_textures.emplace_back(
-            _gui_layer->register_texture(static_cast<VkImageView>(_editor_view_target->native_frame_image_view(i)))
+            _editor_gui->register_texture(static_cast<VkImageView>(_editor_view_target->native_frame_image_view(i)))
         );
     }
+
+    // create editor view camera
+    _editor_view_camera = std::make_unique<engine::core::scene::PerspectiveCamera>();
+    _editor_view_camera->resize(_width, _height);
+    _editor_view_camera->look_at(glm::vec3(0.0f));
 }
 
 void EditorRenderer::resize(uint32_t width, uint32_t height) {
     _width = width;
     _height = height;
 
-    rebuild();
+    _main_viewport->resize(_width, _height);  
 }
 
 void EditorRenderer::render_scene(engine::core::scene::Scene& scene) {
@@ -189,10 +194,8 @@ void EditorRenderer::render_scene(engine::core::scene::Scene& scene) {
 
                 UniformBufferObject ubo{};
                 ubo.model = transform.matrix();
-                ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f),
-                                       glm::vec3(0.0f, 0.0f, 0.0f),
-                                       glm::vec3(0.0f, 1.0f, 0.0f));
-                ubo.proj = glm::perspective(glm::radians(45.0f), _width / (float)_height, 0.1f, 100.0f);
+                ubo.view = _editor_view_camera->view();
+                ubo.proj = _editor_view_camera->projection();
                 ubo.proj[1][1] *= -1.0f;
 
                 material.update_uniform_buffer(&ubo);
@@ -211,64 +214,44 @@ void EditorRenderer::render_scene(engine::core::scene::Scene& scene) {
         [this](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
             ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer.");
             void* cb = ctx.command_buffer;
-            _gui_layer->begin_frame();
 
-            // scene view panel
-            ImGui::Begin("Scene View");
+            gui::GuiContext context;
+            context.command_buffer = cb;
+            context.view_texture_id = _editor_camera_preview_textures[_editor_view_target->frame_index()];
+            _editor_gui->on_gui(context);
 
-            // pick correct imgui target
-            uint32_t cur = _editor_view_target->frame_index();
-            if (!_editor_camera_preview_textures.empty()) {
-                cur = std::min<uint32_t>(cur, (uint32_t)_editor_camera_preview_textures.size() - 1);
-
-                // fit to available region
-                ImVec2 avail = ImGui::GetContentRegionAvail();
-                float tex_w = (float)_editor_view_target->width();
-                float tex_h = (float)_editor_view_target->height();
-                float tex_aspect = tex_w / tex_h;
-                float panel_aspect = (avail.y > 0.f) ? (avail.x / avail.y) : tex_aspect;
-
-                ImVec2 size;
-                if (panel_aspect > tex_aspect) {
-                    size.y = avail.y;
-                    size.x = avail.y * tex_aspect;
-                } else {
-                    size.x = avail.x;
-                    size.y = (tex_aspect > 0.f) ? (avail.x / tex_aspect) : avail.y;
-                }
-
-                // center image
-                ImVec2 cursor = ImGui::GetCursorPos();
-                ImVec2 offset = ImVec2((avail.x - size.x) * 0.5f, (avail.y - size.y) * 0.5f);
-                ImGui::SetCursorPos(ImVec2(cursor.x + offset.x, cursor.y + offset.y));
-
-                ImGui::Image(_editor_camera_preview_textures[cur], size, ImVec2(0,1), ImVec2(1,0));
-            } else {
-                ImGui::TextUnformatted("No editor view textures registered.");
+            uint32_t new_width = std::max(1, static_cast<int>(context.scene_view_size.x));
+            uint32_t new_height = std::max(1, static_cast<int>(context.scene_view_size.y));
+            if (new_width != _width || new_height != _height) {
+                _pending_editor_view_size = glm::vec2(new_width, new_height);
             }
-
-            ImGui::End();
-
-            _gui_layer->end_frame(ctx.command_buffer);
         }
     );
 
-    engine::core::renderer::RenderPassContext ctx{};
-    _frame_graph.execute(ctx);
-}
+    engine::core::renderer::RenderPassContext context{};
+    _frame_graph.execute(context);
 
-void EditorRenderer::rebuild() {
-    _main_viewport->resize(_width, _height);
-    _editor_view_target->resize(_width, _height);
+    if (_pending_editor_view_size) {
+        _device->wait_idle();
 
-    for (uint32_t i = 0; i < _editor_view_target->frame_count(); ++i) {
-        _gui_layer->unregister_texture(_editor_camera_preview_textures[i]);
-    }
-    _editor_camera_preview_textures.clear();
-    for (uint32_t i = 0; i < _editor_view_target->frame_count(); ++i) {
-        _editor_camera_preview_textures.emplace_back(
-            _gui_layer->register_texture(static_cast<VkImageView>(_editor_view_target->native_frame_image_view(i)))
-        );
+        _width  = _pending_editor_view_size->x;
+        _height = _pending_editor_view_size->y;
+
+        _editor_view_camera->resize(_width, _height);
+        _editor_view_target->resize(_width, _height);
+
+        for (auto id : _editor_camera_preview_textures)
+            _editor_gui->unregister_texture(id);
+        _editor_camera_preview_textures.clear();
+        for (uint32_t i = 0; i < _editor_view_target->frame_count(); ++i) {
+            _editor_camera_preview_textures.emplace_back(
+                _editor_gui->register_texture(
+                    static_cast<VkImageView>(_editor_view_target->native_frame_image_view(i))
+                )
+            );
+        }
+
+        _pending_editor_view_size.reset();
     }
 }
 

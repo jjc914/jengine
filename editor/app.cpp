@@ -10,11 +10,8 @@
 
 #include "engine/core/debug/logger.hpp"
 
-#include "editor/gui/imgui_layer.hpp"
-
 #include "editor/components/transform.hpp"
 #include "editor/components/mesh_renderer.hpp"
-// #include "editor/components/transform.hpp"
 
 #include <imgui.h>
 #include <glm/gtx/transform.hpp>

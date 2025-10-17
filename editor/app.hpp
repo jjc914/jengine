@@ -6,12 +6,6 @@
 
 #include "editor/renderer/editor_renderer.hpp"
 
-#include "editor/gui/panels/scene_view_panel.hpp"
-
-#include <wk/wulkan.hpp>
-#include <wk/ext/glfw/glfw_internal.hpp>
-#include <wk/ext/glfw/surface.hpp>
-
 #include <glm/glm.hpp>
 
 namespace editor {

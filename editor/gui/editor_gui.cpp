@@ -1,9 +1,14 @@
-#include "imgui_layer.hpp"
+#include "editor_gui.hpp"
 
 #include "engine/core/graphics/device.hpp"
 
+#include "panels/scene_view_panel.hpp"
+#include "panels/inspector_panel.hpp"
+#include "panels/console_panel.hpp"
+
 #include "engine/core/debug/assert.hpp"
 
+#include <imgui_internal.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
 
@@ -28,7 +33,7 @@ static void CheckVkResult(VkResult err) {
 
 namespace editor::gui {
 
-ImGuiLayer::ImGuiLayer(const engine::core::graphics::Instance& instance,
+EditorGui::EditorGui(const engine::core::graphics::Instance& instance,
     const engine::core::graphics::Device& device,
     const engine::core::graphics::Pipeline& pipeline,
     const engine::core::window::Window& window) : _device(static_cast<VkDevice>(device.native_device()))
@@ -79,9 +84,15 @@ ImGuiLayer::ImGuiLayer(const engine::core::graphics::Instance& instance,
             .set_border_color(VK_BORDER_COLOR_INT_OPAQUE_BLACK)
             .to_vk()
     );
+
+    _is_first_frame = true;
+
+    _panels.emplace_back(std::make_unique<panels::SceneViewPanel>());
+    _panels.emplace_back(std::make_unique<panels::InspectorPanel>());
+    _panels.emplace_back(std::make_unique<panels::ConsolePanel>());
 }
 
-ImGuiLayer::~ImGuiLayer() {
+EditorGui::~EditorGui() {
     vkDeviceWaitIdle(_device);
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
@@ -89,22 +100,87 @@ ImGuiLayer::~ImGuiLayer() {
     ImGui::DestroyContext();
 }
 
-void ImGuiLayer::begin_frame() {
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    
-    ImGui::NewFrame();
-}
+void EditorGui::on_gui(GuiContext& context) {
+    ENGINE_ASSERT(context.command_buffer, "EditorGui expects a valid command buffer.");
+    void* cb = context.command_buffer;
 
-void ImGuiLayer::end_frame(void* cb) {
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();    
+    ImGui::NewFrame();
+
+    // host flags
+    ImGuiWindowFlags host_window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+    ImGui::SetNextWindowPos(viewport->Pos);
+    ImGui::SetNextWindowSize(viewport->Size);
+    ImGui::SetNextWindowViewport(viewport->ID);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+    host_window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+                         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                         ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+    // background clear
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::Begin("EditorDockspace", nullptr, host_window_flags);
+    ImGui::PopStyleVar();
+    ImGui::PopStyleVar(2);
+
+    ImGuiID dockspace_id = ImGui::GetID("MainDockspace");
+    ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
+    ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+
+    // menu bar
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            ImGui::MenuItem("New Scene");
+            ImGui::MenuItem("Open Scene");
+            ImGui::MenuItem("Save Scene");
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit")) { /* ... */ }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
+
+    ImGui::End(); // end of host dockspace
+
+    // set up dock layout
+    if (_is_first_frame) {
+        _is_first_frame = false;
+
+        ImGui::DockBuilderRemoveNode(dockspace_id);
+        ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
+        ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->Size);
+
+        ImGuiID dock_main_id = dockspace_id;
+        ImGuiID dock_right_id  = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.25f, nullptr, &dock_main_id);
+        ImGuiID dock_bottom_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down,  0.25f, nullptr, &dock_main_id);
+
+        ImGui::DockBuilderDockWindow("Scene View", dock_main_id);
+        ImGui::DockBuilderDockWindow("Inspector", dock_right_id);
+        ImGui::DockBuilderDockWindow("Console", dock_bottom_id);
+
+        ImGui::DockBuilderFinish(dockspace_id);
+    }
+
+    // draw panels
+    for (auto& panel : _panels)
+        panel->draw(context);
+
+    // render imgui
     ImGui::Render();
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), static_cast<VkCommandBuffer>(cb));
 
-    ImGui::UpdatePlatformWindows();
-    ImGui::RenderPlatformWindowsDefault();
+    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+    }
 }
 
-ImTextureID ImGuiLayer::register_texture(VkImageView image_view) {
+ImTextureID EditorGui::register_texture(VkImageView image_view) {
     ImTextureID id = reinterpret_cast<ImTextureID>(
         ImGui_ImplVulkan_AddTexture(
             _sampler.handle(),
@@ -117,7 +193,7 @@ ImTextureID ImGuiLayer::register_texture(VkImageView image_view) {
     return id;
 }
 
-void ImGuiLayer::unregister_texture(ImTextureID texture_id) {
+void EditorGui::unregister_texture(ImTextureID texture_id) {
     ImGui_ImplVulkan_RemoveTexture(reinterpret_cast<VkDescriptorSet>(texture_id));
     _registered_textures.erase(
         std::remove(_registered_textures.begin(), _registered_textures.end(), texture_id),
