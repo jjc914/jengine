@@ -10,6 +10,10 @@
 
 #include <wk/ext/glfw/surface.hpp>
 
+#include <glm/glm.hpp>
+
+#include <optional>
+
 namespace engine::drivers::vulkan {
 
 class VulkanDevice;
@@ -26,7 +30,10 @@ public:
     );
     ~VulkanViewport() = default;
 
-    void* begin_frame(const core::graphics::Pipeline& pipeline) override;
+    void* begin_frame(const core::graphics::Pipeline& pipeline,
+        glm::vec4 color_clear,
+        glm::vec2 depth_clear
+    ) override;
     void submit_draws(uint32_t index_count) override;
     void end_frame() override;
 

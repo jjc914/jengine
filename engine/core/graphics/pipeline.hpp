@@ -15,6 +15,7 @@ struct PipelineConfig {
     bool blending_enabled = true;
     bool depth_test_enabled = true;
     bool depth_write_enabled = true;
+    CullMode cull_mode = CullMode::BACK;
     struct {
         uint32_t size = 0;
         ShaderStageFlags stage_flags = ShaderStageFlags::NONE;
@@ -23,6 +24,7 @@ struct PipelineConfig {
     PipelineConfig& set_blending(bool b) { blending_enabled = b; return *this; }
     PipelineConfig& set_depth_test(bool b) { depth_test_enabled = b; return *this; }
     PipelineConfig& set_depth_write(bool b) { depth_write_enabled = b; return *this; }
+    PipelineConfig& set_cull_mode(CullMode m) { cull_mode = m; return *this; }
     PipelineConfig& set_push_constant(uint32_t s, ShaderStageFlags f) { push_constant.size = s; push_constant.stage_flags = f; return *this; }
 };
 

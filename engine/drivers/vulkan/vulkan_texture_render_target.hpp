@@ -3,6 +3,10 @@
 
 #include "vulkan_render_target.hpp"
 
+#include <glm/glm.hpp>
+
+#include <optional>
+
 namespace engine::drivers::vulkan {
 
 class VulkanDevice;
@@ -19,7 +23,10 @@ public:
     );
     ~VulkanTextureRenderTarget() override = default;
 
-    void* begin_frame(const core::graphics::Pipeline& pipeline) override;
+    void* begin_frame(const core::graphics::Pipeline& pipeline,
+        glm::vec4 color_clear,
+        glm::vec2 depth_clear
+    ) override;
     void submit_draws(uint32_t index_count) override;
     void end_frame() override;
 
@@ -33,6 +40,7 @@ private:
 
     const wk::Allocator& _allocator;
     const wk::CommandPool& _command_pool;
+    const wk::Queue& _graphics_queue;
     VkRenderPass _render_pass;
 
     std::vector<wk::Image> _color_images;

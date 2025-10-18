@@ -180,7 +180,10 @@ VulkanViewport::VulkanViewport(
     }
 }
 
-void* VulkanViewport::begin_frame(const core::graphics::Pipeline& pipeline) {
+void* VulkanViewport::begin_frame(const core::graphics::Pipeline& pipeline,
+    glm::vec4 color_clear,
+    glm::vec2 depth_clear)
+{
     vkWaitForFences(_device.handle(), 1, &_in_flight_fences[_current_index].handle(), VK_TRUE, UINT64_MAX);
 
     // acquire next image
@@ -208,10 +211,9 @@ void* VulkanViewport::begin_frame(const core::graphics::Pipeline& pipeline) {
     }
 
     // clear screen
-    VkClearValue color_clear = wk::ClearValue{}.set_color(0.0f, 0.0f, 0.0f).to_vk();
-    VkClearValue depth_clear = wk::ClearValue{}.set_depth_stencil(1.0f, 0).to_vk();
-    
-    std::vector<VkClearValue> clear_values = { color_clear, depth_clear };
+    std::vector<VkClearValue> clear_values(2);
+    clear_values[0] = wk::ClearValue{}.set_color(color_clear.r, color_clear.g, color_clear.b, color_clear.a).to_vk();
+    clear_values[1] = wk::ClearValue{}.set_depth_stencil(depth_clear.r, depth_clear.g).to_vk();
 
     VkRenderPassBeginInfo rp_begin_info = wk::RenderPassBeginInfo{}
         .set_render_pass(static_cast<VkRenderPass>(pipeline.native_render_pass()))

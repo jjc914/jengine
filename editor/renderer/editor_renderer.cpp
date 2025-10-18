@@ -35,16 +35,24 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
     _pipeline_cache_entries.clear();
 
     // default meshes
-    import::ObjModel model = import::ReadObj("res/sphere.obj");
-    _mesh_cache_entries["sphere"] = _mesh_cache->register_mesh(model);
+    import::ObjModel sphere_model = import::ReadObj("res/sphere.obj");
+    _mesh_cache_entries["sphere"] = _mesh_cache->register_mesh(sphere_model);
+
+    import::ObjModel cube_model = import::ReadObj("res/cube.obj");
+    _mesh_cache_entries["cube"] = _mesh_cache->register_mesh(cube_model);
 
     // default shaders
     _shader_cache_entries["editor_view_color_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/editor_view_color.vert.spv");
     _shader_cache_entries["editor_view_color_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/editor_view_color.frag.spv");
+    
     _shader_cache_entries["editor_present_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/editor_present.vert.spv");
     _shader_cache_entries["editor_present_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/editor_present.frag.spv");
+   
     _shader_cache_entries["editor_pick_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/editor_pick.vert.spv");
     _shader_cache_entries["editor_pick_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/editor_pick.frag.spv");
+    
+    _shader_cache_entries["skybox_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/skybox.vert.spv");
+    _shader_cache_entries["skybox_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/skybox.frag.spv");
 
     // vertex bindings
     engine::core::graphics::VertexBinding vertex_binding =
@@ -74,9 +82,14 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
             });
 
     // attachment formats
+    std::vector<engine::core::graphics::ImageAttachmentInfo> skybox_attachments = {
+        { engine::core::graphics::ImageFormat::RGBA8_UNORM, engine::core::graphics::ImageUsage::COLOR | engine::core::graphics::ImageUsage::SAMPLING },
+        { engine::core::graphics::ImageFormat::D32_FLOAT,   engine::core::graphics::ImageUsage::DEPTH },
+    };
+
     std::vector<engine::core::graphics::ImageAttachmentInfo> view_attachments = {
         { engine::core::graphics::ImageFormat::RGBA8_UNORM, engine::core::graphics::ImageUsage::COLOR | engine::core::graphics::ImageUsage::SAMPLING },
-        { engine::core::graphics::ImageFormat::D32_FLOAT,   engine::core::graphics::ImageUsage::DEPTH }
+        { engine::core::graphics::ImageFormat::D32_FLOAT,   engine::core::graphics::ImageUsage::DEPTH },
     };
 
     std::vector<engine::core::graphics::ImageAttachmentInfo> pick_attachments = {
@@ -91,6 +104,13 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
 
     // descriptor layouts
     engine::core::graphics::DescriptorLayoutDescription scene_layout_desc =
+        engine::core::graphics::DescriptorLayoutDescription{}
+            .add_binding(engine::core::graphics::DescriptorLayoutBinding{}
+                .set_binding(0)
+                .set_type(engine::core::graphics::DescriptorType::UNIFORM_BUFFER)
+                .set_visibility(engine::core::graphics::ShaderStageFlags::VERTEX));
+    
+    engine::core::graphics::DescriptorLayoutDescription skybox_layout_desc =
         engine::core::graphics::DescriptorLayoutDescription{}
             .add_binding(engine::core::graphics::DescriptorLayoutBinding{}
                 .set_binding(0)
@@ -120,16 +140,30 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
 
     _pipeline_cache_entries["editor_pick"] =
         _pipeline_cache->register_pipeline(
-            _shader_cache->get(_shader_cache_entries["editor_pick_vert"]),
-            _shader_cache->get(_shader_cache_entries["editor_pick_frag"]),
+            _shader_cache->get(shader_id("editor_pick_vert")),
+            _shader_cache->get(shader_id("editor_pick_frag")),
             _material_cache->get_or_create_layout(scene_layout_desc),
             pick_binding,
             pick_attachments,
             engine::core::graphics::PipelineConfig{}
-                .set_blending(false)
                 .set_depth_test(true)
                 .set_depth_write(true)
+                .set_blending(false)
                 .set_push_constant(sizeof(uint32_t), engine::core::graphics::ShaderStageFlags::FRAGMENT)
+        );
+    
+    _pipeline_cache_entries["skybox"] =
+        _pipeline_cache->register_pipeline(
+            _shader_cache->get(shader_id("skybox_vert")),
+            _shader_cache->get(shader_id("skybox_frag")),
+            _material_cache->get_or_create_layout(skybox_layout_desc),
+            vertex_binding,
+            skybox_attachments,
+            engine::core::graphics::PipelineConfig{}
+                .set_depth_test(true)
+                .set_depth_write(false)
+                .set_blending(false)
+                .set_cull_mode(engine::core::graphics::CullMode::FRONT)
         );
 
     _pipeline_cache_entries["editor_present"] =
@@ -140,9 +174,9 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
             engine::core::graphics::VertexBinding{},
             present_attachments,
             engine::core::graphics::PipelineConfig{}
-                .set_blending(true)
                 .set_depth_test(true)
                 .set_depth_write(true)
+                .set_blending(true)
         );
 
     // default materials
@@ -158,6 +192,13 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
             _pipeline_cache->get(_pipeline_cache_entries["editor_pick"]),
             scene_layout_desc,
             sizeof(UniformBufferObject)
+        );
+    
+    _material_cache_entries["skybox"] =
+        _material_cache->register_material(
+            _pipeline_cache->get(_pipeline_cache_entries["skybox"]),
+            skybox_layout_desc,
+            sizeof(glm::mat4) * 2
         );
     
     _material_cache_entries["editor_present"] =
@@ -182,9 +223,10 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
         *_material_cache,
         *_mesh_cache,
         *_editor_gui,
-        _pipeline_cache_entries["editor_view_color"],
-        _pipeline_cache_entries["editor_pick"],
-        _material_cache_entries["editor_view_pick"]
+        mesh_id("cube"),
+        pipeline_id("skybox"), material_id("skybox"),
+        pipeline_id("editor_view_color"),
+        pipeline_id("editor_pick"), material_id("editor_view_pick")
     };
 
     _scene_view_renderer = std::make_unique<EditorSceneViewRenderer>(context, _width, _height);
@@ -211,16 +253,16 @@ void EditorRenderer::render_scene(engine::core::scene::Scene& scene) {
     // register scene view renderer passes to frame graph
     _scene_view_renderer->register_passes(scene, _frame_graph);
 
-    // presentation pass
+    // present pass
     _present_pass_id = _frame_graph.add_pass(
-        &_pipeline_cache->get(_pipeline_cache_entries["editor_present"]),
+        &_pipeline_cache->get(pipeline_id("editor_present")),
         _main_viewport.get(),
         [this, &scene](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
-            void* cb = ctx.command_buffer;
-            ENGINE_ASSERT(cb, "FrameGraph expects a valid command buffer.");
+            ctx.command_buffer = ctx.target->begin_frame(*ctx.pipeline);
+            ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
 
             gui::GuiContext gui_context;
-            gui_context.command_buffer = cb;
+            gui_context.command_buffer = ctx.command_buffer;
             gui_context.scene_view.texture_id = _scene_view_renderer->texture_id(_scene_view_renderer->frame_index());
             gui_context.scene_view.camera = &_scene_view_renderer->camera();
             gui_context.scene_view.scene = &scene;
@@ -234,6 +276,8 @@ void EditorRenderer::render_scene(engine::core::scene::Scene& scene) {
                 glm::vec2(gui_context.scene_view.out_pos.x, gui_context.scene_view.out_pos.y),
                 glm::vec2(gui_context.scene_view.out_size.x, gui_context.scene_view.out_size.y)
             );
+
+            ctx.target->end_frame();
         }
     );
 

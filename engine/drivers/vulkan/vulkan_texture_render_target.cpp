@@ -6,6 +6,7 @@
 #include "engine/core/debug/logger.hpp"
 
 #include <wk/extent.hpp>
+
 #include <algorithm>
 #include <iostream>
 
@@ -20,7 +21,8 @@ VulkanTextureRenderTarget::VulkanTextureRenderTarget(
     uint32_t max_in_flight)
     : VulkanRenderTarget(device.device()),
       _command_pool(device.command_pool()),
-      _allocator(device.allocator())
+      _allocator(device.allocator()),
+      _graphics_queue(device.graphics_queue())
 {
     _width = width;
     _height = height;
@@ -173,7 +175,10 @@ VulkanTextureRenderTarget::VulkanTextureRenderTarget(
     }
 }
 
-void* VulkanTextureRenderTarget::begin_frame(const core::graphics::Pipeline& pipeline) {
+void* VulkanTextureRenderTarget::begin_frame(const core::graphics::Pipeline& pipeline,
+    glm::vec4 color_clear,
+    glm::vec2 depth_clear)
+{
     vkWaitForFences(_device.handle(), 1, &_in_flight_fences[_frame_index].handle(), VK_TRUE, UINT64_MAX);
     vkResetFences(_device.handle(), 1, &_in_flight_fences[_frame_index].handle());
     vkResetCommandBuffer(_command_buffers[_frame_index].handle(), 0);
@@ -185,11 +190,10 @@ void* VulkanTextureRenderTarget::begin_frame(const core::graphics::Pipeline& pip
         return nullptr;
     }
 
-    VkClearValue color_clear = wk::ClearValue{}.set_color(0, 0, 0).to_vk();
-    VkClearValue depth_clear = wk::ClearValue{}.set_depth_stencil(1.0f, 0).to_vk();
-
-    std::vector<VkClearValue> clear_values = { color_clear };
-    if (_depth_image_views[_frame_index].handle() != VK_NULL_HANDLE) clear_values.emplace_back(depth_clear);
+    // clear screen
+    std::vector<VkClearValue> clear_values(2);
+    clear_values[0] = wk::ClearValue{}.set_color(color_clear.r, color_clear.g, color_clear.b, color_clear.a).to_vk();
+    clear_values[1] = wk::ClearValue{}.set_depth_stencil(depth_clear.r, depth_clear.g).to_vk();
 
     VkRenderPassBeginInfo rp_begin_info = wk::RenderPassBeginInfo{}
         .set_render_pass(_render_pass)

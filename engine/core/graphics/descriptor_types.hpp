@@ -152,6 +152,39 @@ struct DescriptorLayoutDescription {
     }
 };
 
+enum class CullMode : uint32_t {
+    NONE = 0,
+    FRONT = 0x1,
+    BACK = 0x2,
+    FRONT_AND_BACK = 0x3
+};
+
+constexpr inline CullMode operator|(CullMode a, CullMode b) noexcept {
+    return static_cast<CullMode>(
+        static_cast<uint32_t>(a) | static_cast<uint32_t>(b)
+    );
+}
+
+constexpr inline CullMode& operator|=(CullMode& a, CullMode b) noexcept {
+    a = a | b;
+    return a;
+}
+
+constexpr inline CullMode operator&(CullMode a, CullMode b) noexcept {
+    return static_cast<CullMode>(
+        static_cast<uint32_t>(a) & static_cast<uint32_t>(b)
+    );
+}
+
+constexpr inline CullMode& operator&=(CullMode& a, CullMode b) noexcept {
+    a = a & b;
+    return a;
+}
+
+constexpr inline bool operator!(CullMode a) noexcept {
+    return static_cast<uint32_t>(a) == 0;
+}
+
 }
 
 #endif

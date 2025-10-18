@@ -25,6 +25,8 @@
 
 #include "editor_scene_view_renderer.hpp"
 
+#include <glm/glm.hpp>
+
 #include <memory>
 #include <cstdint>
 #include <unordered_map>
@@ -44,6 +46,9 @@ struct EditorRendererContext {
     engine::core::renderer::cache::MeshCache& mesh_cache;
     gui::EditorGui& gui;
 
+    engine::core::renderer::cache::MeshCacheId cube_id;
+    engine::core::renderer::cache::PipelineCacheId skybox_pipeline;
+    engine::core::renderer::cache::MaterialCacheId skybox_material;
     engine::core::renderer::cache::PipelineCacheId view_pipeline;
     engine::core::renderer::cache::PipelineCacheId pick_pipeline;
     engine::core::renderer::cache::MaterialCacheId pick_material;

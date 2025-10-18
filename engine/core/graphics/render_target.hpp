@@ -7,6 +7,9 @@
 #include "vertex_types.hpp"
 #include "image_types.hpp"
 
+#include <glm/glm.hpp>
+
+#include <optional>
 #include <string>
 #include <memory>
 #include <vector>
@@ -17,7 +20,10 @@ class RenderTarget {
 public:
     virtual ~RenderTarget() = default;
 
-    virtual void* begin_frame(const Pipeline& pipeline) = 0;
+    virtual void* begin_frame(const Pipeline& pipeline,
+        glm::vec4 color_clear = {0.0f, 0.0f, 0.0f, 1.0f},
+        glm::vec2 depth_clear = {1.0f, 0.0f}
+    ) = 0;
     virtual void submit_draws(uint32_t index_count) = 0;
     virtual void end_frame() = 0;
 

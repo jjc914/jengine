@@ -108,7 +108,7 @@ get_filename_component(VULKAN_PATH ${Vulkan_INCLUDE_DIRS} DIRECTORY)
 set(GLSL_VALIDATOR "${VULKAN_PATH}/bin/glslangValidator")
 
 # --- Copy General Resources ---
-set(RES_SRC_DIR "${CMAKE_SOURCE_DIR}/res")
+set(RES_SRC_DIR "${CMAKE_SOURCE_DIR}/editor/res")
 set(RES_DST_DIR "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/res")
 
 add_custom_command(

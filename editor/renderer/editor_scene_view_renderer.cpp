@@ -8,7 +8,6 @@
 #include <imgui_internal.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
-#include <glm/gtx/transform.hpp>
 #include <algorithm>
 
 namespace editor::renderer {
@@ -26,12 +25,12 @@ EditorSceneViewRenderer::EditorSceneViewRenderer(
       _width(width),
       _height(height)
 {
-    // --- Camera ---
+    // camera
     _camera = std::make_unique<editor::scene::EditorCamera>();
     _camera->resize(width, height);
     _camera->look_at(glm::vec3(0.0f));
 
-    // --- Render targets ---
+    // render targets
     _view_target = _device->create_texture_render_target(
         _pipeline_cache.get(context.view_pipeline),
         width,
@@ -43,7 +42,7 @@ EditorSceneViewRenderer::EditorSceneViewRenderer(
         height
     );
 
-    // --- Sampler ---
+    // sampler
     _sampler = wk::Sampler(
         static_cast<VkDevice>(_device->native_device()),
         wk::SamplerCreateInfo{}
@@ -60,7 +59,7 @@ EditorSceneViewRenderer::EditorSceneViewRenderer(
             .to_vk()
     );
 
-    // --- ImGui texture registration ---
+    // imgui texture registration
     _imgui_texture_ids.clear();
     for (uint32_t i = 0; i < _view_target->frame_count(); ++i) {
         ImTextureID id = reinterpret_cast<ImTextureID>(
@@ -73,6 +72,9 @@ EditorSceneViewRenderer::EditorSceneViewRenderer(
         _imgui_texture_ids.emplace_back(id);
     }
 
+    _cube_id = context.cube_id;
+    _skybox_pipeline_id = context.skybox_pipeline;
+    _skybox_material_id = context.skybox_material;
     _view_pipeline_id = context.view_pipeline;
     _pick_pipeline_id = context.pick_pipeline;
     _pick_material_id = context.pick_material;
@@ -82,13 +84,40 @@ void EditorSceneViewRenderer::register_passes(
     engine::core::scene::Scene& scene,
     engine::core::renderer::FrameGraph& graph
 ) {
+    // skybox pass
+    graph.add_pass(
+        &_pipeline_cache.get(_skybox_pipeline_id),
+        _view_target.get(),
+        [this](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
+            ctx.command_buffer = ctx.target->begin_frame(*ctx.pipeline);
+            ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
+
+            engine::core::graphics::Material& material = _material_cache.get(_skybox_material_id);
+            engine::core::graphics::MeshBuffer& mesh = _mesh_cache.get(_cube_id);
+
+            struct SkyboxUBO {
+                glm::mat4 view;
+                glm::mat4 proj;
+            } ubo;
+
+            ubo.view = glm::mat4(glm::mat3(_camera->view()));
+            ubo.proj = _camera->projection();
+            ubo.proj[1][1] *= -1.0f;
+
+            material.update_uniform_buffer(&ubo);
+            mesh.bind(ctx.command_buffer);
+            material.bind(ctx.command_buffer);
+            _view_target->submit_draws(mesh.index_count());
+        }
+    );
+
     // scene color pass
     graph.add_pass(
         &_pipeline_cache.get(_view_pipeline_id),
         _view_target.get(),
         [this, &scene](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
-            void* cb = ctx.command_buffer;
-            if (!cb) return;
+            ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
+            _pipeline_cache.get(_view_pipeline_id).bind(ctx.command_buffer);
 
             for (auto [entity, transform, mesh_renderer] :
                  scene.view<components::Transform, components::MeshRenderer>())
@@ -100,15 +129,17 @@ void EditorSceneViewRenderer::register_passes(
 
                 UniformBufferObject ubo{};
                 ubo.model = transform.matrix();
-                ubo.view  = _camera->view();
-                ubo.proj  = _camera->projection();
+                ubo.view = _camera->view();
+                ubo.proj = _camera->projection();
                 ubo.proj[1][1] *= -1.0f;
 
                 material.update_uniform_buffer(&ubo);
-                mesh.bind(cb);
-                material.bind(cb);
+                mesh.bind(ctx.command_buffer);
+                material.bind(ctx.command_buffer);
                 _view_target->submit_draws(mesh.index_count());
             }
+
+            ctx.target->end_frame();
         }
     );
 
@@ -118,8 +149,8 @@ void EditorSceneViewRenderer::register_passes(
         &_pipeline_cache.get(_pick_pipeline_id),
         _pick_target.get(),
         [this, &scene, readback_index](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
-            void* cb = ctx.command_buffer;
-            if (!cb) return;
+            ctx.command_buffer = ctx.target->begin_frame(*ctx.pipeline);
+            ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
 
             for (auto [entity, transform, mesh_renderer] :
                 scene.view<components::Transform, components::MeshRenderer>())
@@ -136,17 +167,19 @@ void EditorSceneViewRenderer::register_passes(
                 ubo.proj[1][1] *= -1.0f;
 
                 material.update_uniform_buffer(&ubo);
-                mesh.bind(cb);
-                material.bind(cb);
+                mesh.bind(ctx.command_buffer);
+                material.bind(ctx.command_buffer);
 
                 struct { uint32_t entity_id; } pc{
                     static_cast<uint32_t>(entity & 0xFFFFFFFFu)
                 };
-                _pick_target->push_constants(cb, ctx.pipeline_layout, &pc, sizeof(pc),
+                _pick_target->push_constants(ctx.command_buffer, ctx.pipeline->native_pipeline_layout(), &pc, sizeof(pc),
                     engine::core::graphics::ShaderStageFlags::FRAGMENT);
 
                 _pick_target->submit_draws(mesh.index_count());
             }
+
+            ctx.target->end_frame();
         }
     );
 

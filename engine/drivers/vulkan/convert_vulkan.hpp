@@ -242,6 +242,18 @@ inline uint32_t BytesPerPixel(VkFormat format) {
     }
 }
 
+inline VkCullModeFlags ToVkCullMode(core::graphics::CullMode mode) {
+    switch (mode) {
+        case core::graphics::CullMode::NONE:           return VK_CULL_MODE_NONE;
+        case core::graphics::CullMode::FRONT:          return VK_CULL_MODE_FRONT_BIT;
+        case core::graphics::CullMode::BACK:           return VK_CULL_MODE_BACK_BIT;
+        case core::graphics::CullMode::FRONT_AND_BACK: return VK_CULL_MODE_FRONT_AND_BACK;
+        default:
+            ENGINE_ASSERT(false, "Unsupported CullMode");
+            return VK_CULL_MODE_NONE;
+    }
+}
+
 }
 
 #endif

@@ -17,6 +17,7 @@
 #include "editor/gui/editor_gui.hpp"
 
 #include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
 #include <memory>
 #include <vector>
 #include <imgui.h>
@@ -77,6 +78,9 @@ private:
     std::optional<glm::vec2> _pending_resize;
     engine::core::scene::Entity _selected_entity{0};
 
+    engine::core::renderer::cache::MeshCacheId _cube_id;
+    engine::core::renderer::cache::PipelineCacheId _skybox_pipeline_id;
+    engine::core::renderer::cache::MaterialCacheId _skybox_material_id;
     engine::core::renderer::cache::PipelineCacheId _view_pipeline_id;
     engine::core::renderer::cache::PipelineCacheId _pick_pipeline_id;
     engine::core::renderer::cache::MaterialCacheId _pick_material_id;

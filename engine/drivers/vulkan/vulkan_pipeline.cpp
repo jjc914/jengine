@@ -26,6 +26,9 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
     bool has_depth = false;
     VkAttachmentReference depth_attachment_reference{};
     for (int i = 0; i < _attachment_info.size(); ++i) {
+        bool is_depth = static_cast<uint32_t>(_attachment_info[i].usage & core::graphics::ImageUsage::DEPTH);
+        VkAttachmentLoadOp stencil_load_op = is_depth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+
         attachment_descriptions.emplace_back(
             wk::AttachmentDescription{}
                 .set_flags(0)
@@ -33,34 +36,33 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
                 .set_samples(VK_SAMPLE_COUNT_1_BIT)
                 .set_load_op(VK_ATTACHMENT_LOAD_OP_CLEAR)
                 .set_store_op(VK_ATTACHMENT_STORE_OP_STORE)
-                .set_stencil_load_op(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+                .set_stencil_load_op(stencil_load_op)
                 .set_stencil_store_op(VK_ATTACHMENT_STORE_OP_DONT_CARE)
                 .set_initial_layout(VK_IMAGE_LAYOUT_UNDEFINED)
                 .set_final_layout(ToVkFinalLayout(_attachment_info[i].usage))
                 .to_vk()
         );
 
-        if (static_cast<uint32_t>(_attachment_info[i].usage & core::graphics::ImageUsage::DEPTH)) {
+        if (is_depth) {
             if (!has_depth) {
                 depth_attachment_reference = wk::AttachmentReference{}
                     .set_attachment(static_cast<uint32_t>(i))
                     .set_layout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
                     .to_vk();
-
                 _depth_format = _attachment_info[i].format;
                 has_depth = true;
             } else {
-                core::debug::Logger::get_singleton().warn("Multiple depth attachments are not supported; ignoring extra depth targets");
+                core::debug::Logger::get_singleton().warn(
+                    "Multiple depth attachments are not supported; ignoring extra depth targets"
+                );
             }
-        } 
-        else { // treat everything else as color-like (COLOR, PRESENT, SAMPLING)
+        } else {
             color_attachment_references.emplace_back(
                 wk::AttachmentReference{}
                     .set_attachment(static_cast<uint32_t>(i))
                     .set_layout(ToVkSubpassLayout(_attachment_info[i].usage))
                     .to_vk()
             );
-
             _color_format = _attachment_info[i].format;
         }
     }
@@ -169,7 +171,7 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
     VkPipelineRasterizationStateCreateInfo raster_ci =
         wk::PipelineRasterizationStateCreateInfo{}
             .set_polygon_mode(VK_POLYGON_MODE_FILL)
-            .set_cull_mode(VK_CULL_MODE_BACK_BIT)
+            .set_cull_mode(ToVkCullMode(config.cull_mode))
             .set_front_face(VK_FRONT_FACE_COUNTER_CLOCKWISE)
             .set_line_width(1.0f)
             .to_vk();
@@ -183,7 +185,7 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
         wk::PipelineDepthStencilStateCreateInfo{}
             .set_depth_test_enable(config.depth_test_enabled ? VK_TRUE : VK_FALSE)
             .set_depth_write_enable(config.depth_write_enabled ? VK_TRUE : VK_FALSE)
-            .set_depth_compare_op(VK_COMPARE_OP_LESS)
+            .set_depth_compare_op(VK_COMPARE_OP_LESS_OR_EQUAL)
             .to_vk();
 
     bool is_integer_format = false;

@@ -12,7 +12,8 @@ namespace engine::core::renderer {
 
 struct RenderPassContext {
     void* command_buffer = nullptr;
-    void* pipeline_layout = nullptr;
+    graphics::Pipeline* pipeline = nullptr;
+    graphics::RenderTarget* target = nullptr;
 };
 
 using RenderPassId = uint32_t;
@@ -46,16 +47,10 @@ public:
             RenderPass& pass = _passes[i];
             if (!pass.enabled || !pass.pipeline || !pass.target)
                 continue;
-
-            void* cmd = pass.target->begin_frame(*pass.pipeline);
-            if (!cmd) continue;
-
-            ctx.command_buffer = cmd;
-            ctx.pipeline_layout = pass.pipeline->native_pipeline_layout();
+            ctx.pipeline = pass.pipeline;
+            ctx.target = pass.target;
 
             pass.callback(ctx, i);
-
-            pass.target->end_frame();
         }
     }
 
