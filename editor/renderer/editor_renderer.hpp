@@ -23,6 +23,8 @@
 #include "editor/gui/editor_gui.hpp"
 #include "editor/scene/editor_camera.hpp"
 
+#include "editor_scene_view_renderer.hpp"
+
 #include <memory>
 #include <cstdint>
 #include <unordered_map>
@@ -33,6 +35,18 @@ struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
+};
+
+struct EditorRendererContext {
+    engine::core::graphics::Device* device;
+    engine::core::renderer::cache::PipelineCache& pipeline_cache;
+    engine::core::renderer::cache::MaterialCache& material_cache;
+    engine::core::renderer::cache::MeshCache& mesh_cache;
+    gui::EditorGui& gui;
+
+    engine::core::renderer::cache::PipelineCacheId view_pipeline;
+    engine::core::renderer::cache::PipelineCacheId pick_pipeline;
+    engine::core::renderer::cache::MaterialCacheId pick_material;
 };
 
 class EditorRenderer final : public engine::core::renderer::Renderer {
@@ -94,11 +108,13 @@ private:
     // frame graph
     engine::core::renderer::FrameGraph _frame_graph;
     engine::core::renderer::RenderPassId _scene_pass_id;
+    engine::core::renderer::RenderPassId _editor_pick_pass_id;
     engine::core::renderer::RenderPassId _present_pass_id;
 
     // render targets
     std::unique_ptr<engine::core::graphics::RenderTarget> _main_viewport;
     std::unique_ptr<engine::core::graphics::RenderTarget> _editor_view_target;
+    std::unique_ptr<engine::core::graphics::RenderTarget> _editor_pick_target;
 
     // ui
     std::unique_ptr<gui::EditorGui> _editor_gui;
@@ -107,6 +123,10 @@ private:
     // scene view camera
     std::unique_ptr<scene::EditorCamera> _editor_view_camera;
     std::optional<glm::vec2> _pending_editor_view_size;
+    glm::vec2 _editor_view_size;
+    glm::vec2 _editor_view_pos;
+    engine::core::scene::Entity _editor_view_selected_entity = 0;
+    std::unique_ptr<EditorSceneViewRenderer> _scene_view_renderer;
 };
     
 } // namespace editor::renderer

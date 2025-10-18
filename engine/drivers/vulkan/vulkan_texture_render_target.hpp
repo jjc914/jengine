@@ -24,6 +24,7 @@ public:
     void end_frame() override;
 
     void resize(uint32_t width, uint32_t height) override;
+    std::vector<uint32_t> copy_color_to_cpu(uint32_t frame_index = 0) override;
     
     void* native_frame_image_view(uint32_t i) const override { return static_cast<void*>(_color_image_views[i].handle()); }
 
@@ -31,6 +32,7 @@ private:
     void rebuild();
 
     const wk::Allocator& _allocator;
+    const wk::CommandPool& _command_pool;
     VkRenderPass _render_pass;
 
     std::vector<wk::Image> _color_images;

@@ -20,8 +20,19 @@ inline VkFormat ToVkFormat(core::graphics::ImageFormat fmt) {
         case IF::SRGB8:              return VK_FORMAT_R8G8B8_SRGB;
         case IF::SRGBA8:             return VK_FORMAT_R8G8B8A8_SRGB;
         case IF::SBGRA8:             return VK_FORMAT_B8G8R8A8_SRGB;
+
         case IF::RGBA16_FLOAT:       return VK_FORMAT_R16G16B16A16_SFLOAT;
         case IF::RGBA32_FLOAT:       return VK_FORMAT_R32G32B32A32_SFLOAT;
+
+        case IF::R8_UINT:            return VK_FORMAT_R8_UINT;
+        case IF::R16_UINT:           return VK_FORMAT_R16_UINT;
+        case IF::R32_UINT:           return VK_FORMAT_R32_UINT;
+        case IF::RG8_UINT:           return VK_FORMAT_R8G8_UINT;
+        case IF::RG16_UINT:          return VK_FORMAT_R16G16_UINT;
+        case IF::RG32_UINT:          return VK_FORMAT_R32G32_UINT;
+        case IF::RGBA8_UINT:         return VK_FORMAT_R8G8B8A8_UINT;
+        case IF::RGBA16_UINT:        return VK_FORMAT_R16G16B16A16_UINT;
+        case IF::RGBA32_UINT:        return VK_FORMAT_R32G32B32A32_UINT;
 
         case IF::D16_UNORM:          return VK_FORMAT_D16_UNORM;
         case IF::D24_UNORM_S8_UINT:  return VK_FORMAT_D24_UNORM_S8_UINT;
@@ -45,8 +56,19 @@ inline core::graphics::ImageFormat FromImageVkFormat(VkFormat fmt) {
         case VK_FORMAT_R8G8B8_SRGB:          return IF::SRGB8;
         case VK_FORMAT_R8G8B8A8_SRGB:        return IF::SRGBA8;
         case VK_FORMAT_B8G8R8A8_SRGB:        return IF::SBGRA8;
+
         case VK_FORMAT_R16G16B16A16_SFLOAT:  return IF::RGBA16_FLOAT;
         case VK_FORMAT_R32G32B32A32_SFLOAT:  return IF::RGBA32_FLOAT;
+
+        case VK_FORMAT_R8_UINT:              return IF::R8_UINT;
+        case VK_FORMAT_R16_UINT:             return IF::R16_UINT;
+        case VK_FORMAT_R32_UINT:             return IF::R32_UINT;
+        case VK_FORMAT_R8G8_UINT:            return IF::RG8_UINT;
+        case VK_FORMAT_R16G16_UINT:          return IF::RG16_UINT;
+        case VK_FORMAT_R32G32_UINT:          return IF::RG32_UINT;
+        case VK_FORMAT_R8G8B8A8_UINT:        return IF::RGBA8_UINT;
+        case VK_FORMAT_R16G16B16A16_UINT:    return IF::RGBA16_UINT;
+        case VK_FORMAT_R32G32B32A32_UINT:    return IF::RGBA32_UINT;
 
         case VK_FORMAT_D16_UNORM:            return IF::D16_UNORM;
         case VK_FORMAT_D24_UNORM_S8_UINT:    return IF::D24_UNORM_S8_UINT;
@@ -92,17 +114,21 @@ inline VkImageLayout ToVkSubpassLayout(core::graphics::ImageUsage usage) {
     using IU = core::graphics::ImageUsage;
     const uint32_t u = static_cast<uint32_t>(usage);
 
-    const bool is_present = u & static_cast<uint32_t>(IU::PRESENT);
-    const bool is_depth   = u & static_cast<uint32_t>(IU::DEPTH);
-    const bool is_color   = u & static_cast<uint32_t>(IU::COLOR);
-    const bool is_sampled = u & static_cast<uint32_t>(IU::SAMPLING);
-    const bool is_storage = u & static_cast<uint32_t>(IU::STORAGE);
+    const bool is_present  = u & static_cast<uint32_t>(IU::PRESENT);
+    const bool is_depth    = u & static_cast<uint32_t>(IU::DEPTH);
+    const bool is_color    = u & static_cast<uint32_t>(IU::COLOR);
+    const bool is_sampled  = u & static_cast<uint32_t>(IU::SAMPLING);
+    const bool is_storage  = u & static_cast<uint32_t>(IU::STORAGE);
+    const bool is_copy_src = u & static_cast<uint32_t>(IU::COPY_SRC);
+    const bool is_copy_dst = u & static_cast<uint32_t>(IU::COPY_DST);
 
     if (is_depth)   return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     if (is_present) return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     if (is_color)   return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     if (is_sampled) return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     if (is_storage) return VK_IMAGE_LAYOUT_GENERAL;
+    if (is_copy_src) return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    if (is_copy_dst) return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 
     ENGINE_ASSERT(false, "Unsupported ImageUsage for subpass layout");
     return VK_IMAGE_LAYOUT_GENERAL;
@@ -112,15 +138,19 @@ inline VkImageLayout ToVkFinalLayout(core::graphics::ImageUsage usage) {
     using IU = core::graphics::ImageUsage;
     const uint32_t u = static_cast<uint32_t>(usage);
 
-    const bool is_present = u & static_cast<uint32_t>(IU::PRESENT);
-    const bool is_depth   = u & static_cast<uint32_t>(IU::DEPTH);
-    const bool is_color   = u & static_cast<uint32_t>(IU::COLOR);
-    const bool is_sampled = u & static_cast<uint32_t>(IU::SAMPLING);
+    const bool is_present  = u & static_cast<uint32_t>(IU::PRESENT);
+    const bool is_depth    = u & static_cast<uint32_t>(IU::DEPTH);
+    const bool is_color    = u & static_cast<uint32_t>(IU::COLOR);
+    const bool is_sampled  = u & static_cast<uint32_t>(IU::SAMPLING);
+    const bool is_copy_src = u & static_cast<uint32_t>(IU::COPY_SRC);
+    const bool is_copy_dst = u & static_cast<uint32_t>(IU::COPY_DST);
 
-    if (is_present) return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    if (is_sampled) return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    if (is_depth)   return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    if (is_color)   return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    if (is_present)  return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    if (is_sampled)  return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    if (is_depth)    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    if (is_color)    return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    if (is_copy_src) return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    if (is_copy_dst) return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 
     return VK_IMAGE_LAYOUT_GENERAL;
 }
@@ -199,6 +229,17 @@ inline VkShaderStageFlags ToVkShaderStageFlags(core::graphics::ShaderStageFlags 
         flags |= VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
 
     return flags;
+}
+
+inline uint32_t BytesPerPixel(VkFormat format) {
+    switch (format) {
+        case VK_FORMAT_R32_UINT:       return 4;
+        case VK_FORMAT_R8G8B8A8_UNORM: return 4;
+        case VK_FORMAT_B8G8R8A8_UNORM: return 4;
+        default:
+            ENGINE_ASSERT(false, "Unsupported color format for readback");
+            return 4;
+    }
 }
 
 }

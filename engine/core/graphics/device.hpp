@@ -31,7 +31,8 @@ public:
         const Shader& vert, const Shader& frag,
         const DescriptorSetLayout& layout,
         const VertexBinding& vertex_binding, 
-        const std::vector<ImageAttachmentInfo>& attachment_info
+        const std::vector<ImageAttachmentInfo>& attachment_info,
+        const core::graphics::PipelineConfig& config
     ) const = 0;
     virtual std::unique_ptr<RenderTarget> create_viewport(
         const window::Window& window, 

@@ -70,22 +70,6 @@ EditorGui::EditorGui(const engine::core::graphics::Instance& instance,
 
     ImGui_ImplVulkan_Init(&init_info);
 
-    _sampler = wk::Sampler(
-        _device,
-        wk::SamplerCreateInfo{}
-            .set_mag_filter(VK_FILTER_LINEAR)
-            .set_min_filter(VK_FILTER_LINEAR)
-            .set_mipmap_mode(VK_SAMPLER_MIPMAP_MODE_LINEAR)
-            .set_address_mode_u(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
-            .set_address_mode_v(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
-            .set_address_mode_w(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
-            .set_min_lod(-1000.0f)
-            .set_max_lod(1000.0f)
-            .set_max_anisotropy(1.0f)
-            .set_border_color(VK_BORDER_COLOR_INT_OPAQUE_BLACK)
-            .to_vk()
-    );
-
     _is_first_frame = true;
 
     _panels.emplace_back(std::make_unique<panels::SceneViewPanel>());
@@ -172,11 +156,9 @@ void EditorGui::on_gui(GuiContext& context) {
         panel->draw(context);
         if (panel->is_focused()) {
             panel->on_gui_focus(context);
-            engine::core::debug::Logger::get_singleton().info("{} focused", panel->name());
         }
         if (panel->is_hovered()) {
             panel->on_gui_hover(context);
-            engine::core::debug::Logger::get_singleton().info("{} hovered", panel->name());
         }
     }
 
@@ -188,27 +170,6 @@ void EditorGui::on_gui(GuiContext& context) {
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
     }
-}
-
-ImTextureID EditorGui::register_texture(VkImageView image_view) {
-    ImTextureID id = reinterpret_cast<ImTextureID>(
-        ImGui_ImplVulkan_AddTexture(
-            _sampler.handle(),
-            image_view,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-        )
-    );
-
-    _registered_textures.push_back(id);
-    return id;
-}
-
-void EditorGui::unregister_texture(ImTextureID texture_id) {
-    ImGui_ImplVulkan_RemoveTexture(reinterpret_cast<VkDescriptorSet>(texture_id));
-    _registered_textures.erase(
-        std::remove(_registered_textures.begin(), _registered_textures.end(), texture_id),
-        _registered_textures.end()
-    );
 }
 
 } // namespace editor::gui

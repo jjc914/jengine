@@ -91,7 +91,8 @@ add_executable(editor
     editor/gui/panels/inspector_panel.hpp   editor/gui/panels/inspector_panel.cpp
     editor/gui/panels/console_panel.hpp     editor/gui/panels/console_panel.cpp
 
-    editor/renderer/editor_renderer.hpp  editor/renderer/editor_renderer.cpp
+    editor/renderer/editor_renderer.hpp             editor/renderer/editor_renderer.cpp
+    editor/renderer/editor_scene_view_renderer.hpp  editor/renderer/editor_scene_view_renderer.cpp
 )
 
 target_compile_definitions(editor PUBLIC WLK_ENABLE_VALIDATION_LAYERS)

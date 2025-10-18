@@ -21,7 +21,10 @@ public:
     virtual void submit_draws(uint32_t index_count) = 0;
     virtual void end_frame() = 0;
 
+    virtual void push_constants(void* command_buffer, void* pipeline_layout, const void* data, size_t size, ShaderStageFlags stage_flags) = 0;
+
     virtual void resize(uint32_t width, uint32_t height) = 0;
+    virtual std::vector<uint32_t> copy_color_to_cpu(uint32_t attachment_index = 0) = 0;
 
     virtual uint32_t frame_index() const = 0;
     virtual uint32_t frame_count() const = 0;

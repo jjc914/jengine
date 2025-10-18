@@ -6,6 +6,22 @@
 
 namespace engine::drivers::vulkan {
 
+VKAPI_ATTR VkBool32 VKAPI_CALL DefaultDebugMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                            VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                            const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                            void* pUserData) {
+    if (messageSeverity <= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+        core::debug::Logger::get_singleton().info(pCallbackData->pMessage);
+    } else if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+        core::debug::Logger::get_singleton().warn(pCallbackData->pMessage);
+    } else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+        core::debug::Logger::get_singleton().error(pCallbackData->pMessage);
+    } else {
+        core::debug::Logger::get_singleton().fatal(pCallbackData->pMessage);
+    }
+    return VK_FALSE;
+}
+
 VulkanInstance::VulkanInstance() {
 #ifndef NDEBUG
 #ifndef WLK_ENABLE_VALIDATION_LAYERS
@@ -22,7 +38,7 @@ VulkanInstance::VulkanInstance() {
             VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
             VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
             VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
-        .set_user_callback(wk::DefaultDebugMessengerCallback)
+        .set_user_callback(DefaultDebugMessengerCallback)
         .to_vk();
 #endif
 

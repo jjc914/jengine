@@ -1,6 +1,9 @@
 #ifndef engine_core_renderer_FRAME_GRAPH_HPP
 #define engine_core_renderer_FRAME_GRAPH_HPP
 
+#include "engine/core/graphics/pipeline.hpp"
+#include "engine/core/graphics/render_target.hpp"
+
 #include <functional>
 #include <vector>
 #include <string>
@@ -9,6 +12,7 @@ namespace engine::core::renderer {
 
 struct RenderPassContext {
     void* command_buffer = nullptr;
+    void* pipeline_layout = nullptr;
 };
 
 using RenderPassId = uint32_t;
@@ -47,6 +51,7 @@ public:
             if (!cmd) continue;
 
             ctx.command_buffer = cmd;
+            ctx.pipeline_layout = pass.pipeline->native_pipeline_layout();
 
             pass.callback(ctx, i);
 

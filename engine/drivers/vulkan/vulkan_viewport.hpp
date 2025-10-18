@@ -6,6 +6,8 @@
 #include "engine/core/graphics/pipeline.hpp"
 #include "engine/core/window/window.hpp"
 
+#include "engine/core/debug/logger.hpp"
+
 #include <wk/ext/glfw/surface.hpp>
 
 namespace engine::drivers::vulkan {
@@ -29,6 +31,10 @@ public:
     void end_frame() override;
 
     void resize(uint32_t width, uint32_t height) override;
+    std::vector<uint32_t> copy_color_to_cpu(uint32_t attachment_index = 0) override {
+        core::debug::Logger::get_singleton().fatal("Not implemented");
+        return {};
+    }
     
     void* native_frame_image_view(uint32_t i) const override { return static_cast<void*>(_depth_image_views[i].handle()); }
 

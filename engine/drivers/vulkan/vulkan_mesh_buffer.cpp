@@ -92,7 +92,7 @@ VulkanMeshBuffer::VulkanMeshBuffer(
         vkEndCommandBuffer(upload_cb.handle());
 
         // submit and wait
-        VkSubmitInfo submit_info = wk::GraphicsQueueSubmitInfo{}
+        VkSubmitInfo submit_info = wk::SubmitInfo{}
             .set_command_buffers(1, &upload_cb.handle())
             .to_vk();
 

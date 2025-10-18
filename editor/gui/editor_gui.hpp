@@ -11,6 +11,8 @@
 #include "engine/core/debug/assert.hpp"
 #include "engine/core/debug/logger.hpp"
 
+#include "engine/core/scene/scene.hpp"
+
 #include "editor/scene/editor_camera.hpp"
 
 #include <wk/wulkan.hpp>
@@ -27,7 +29,12 @@ struct GuiContext {
     struct SceneView {
         ImTextureID texture_id;
         scene::EditorCamera* camera = nullptr;
+        
+        engine::core::scene::Scene* scene = nullptr;
+        std::optional<engine::core::scene::Entity> selected_entity;
+
         ImVec2 out_size{0, 0};
+        ImVec2 out_pos{0, 0};
     } scene_view;
 };
 
@@ -42,14 +49,8 @@ public:
 
     void on_gui(GuiContext& context);
 
-    ImTextureID register_texture(VkImageView image_view);
-    void unregister_texture(ImTextureID texture_id);
-
 private:
     VkDevice _device;
-    VkDescriptorSet _descriptor_set;
-    wk::Sampler _sampler;
-    std::vector<ImTextureID> _registered_textures;
 
     bool _is_first_frame = false;
     std::vector<std::unique_ptr<panels::Panel>> _panels;

@@ -13,7 +13,8 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
     VkShaderModule vert, VkShaderModule frag,
     const core::graphics::VertexBinding& vertex_binding, // TODO: add support for multiple bindings
     const core::graphics::DescriptorSetLayout& layout,
-    const std::vector<core::graphics::ImageAttachmentInfo>& attachment_info) 
+    const std::vector<core::graphics::ImageAttachmentInfo>& attachment_info,
+    const core::graphics::PipelineConfig& config) 
     : _device(device.device()), _allocator(device.allocator()), _descriptor_pool(device.descriptor_pool()),
       _attachment_info(attachment_info)
 {
@@ -97,11 +98,21 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
             .to_vk()
     );
 
-    VkDescriptorSetLayout layouts[] = { static_cast<VkDescriptorSetLayout>(layout.native_descriptor_set_layout())};
+    std::vector<VkDescriptorSetLayout> layouts = { static_cast<VkDescriptorSetLayout>(layout.native_descriptor_set_layout())};
+    std::vector<VkPushConstantRange> push_constant_ranges;
+    if (config.push_constant.size > 0) {
+        push_constant_ranges.emplace_back(wk::PushConstantRange{}
+            .set_stage_flags(ToVkShaderStageFlags(config.push_constant.stage_flags))
+            .set_offset(0)
+            .set_size(config.push_constant.size)
+            .to_vk()
+        );
+    }
 
     _pipeline_layout = wk::PipelineLayout(_device.handle(),
         wk::PipelineLayoutCreateInfo{}
-            .set_set_layouts(1, layouts)
+            .set_set_layouts(layouts.size(), layouts.data())
+            .set_push_constant_ranges(push_constant_ranges.size(), push_constant_ranges.data())
             .to_vk()
     );
 
@@ -170,14 +181,21 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
 
     VkPipelineDepthStencilStateCreateInfo depth_stencil_ci =
         wk::PipelineDepthStencilStateCreateInfo{}
-            .set_depth_test_enable(VK_TRUE)
-            .set_depth_write_enable(VK_TRUE)
+            .set_depth_test_enable(config.depth_test_enabled ? VK_TRUE : VK_FALSE)
+            .set_depth_write_enable(config.depth_write_enabled ? VK_TRUE : VK_FALSE)
             .set_depth_compare_op(VK_COMPARE_OP_LESS)
             .to_vk();
 
+    bool is_integer_format = false;
+    VkFormat vkFormat = ToVkFormat(_color_format);
+    VkFormatProperties props{};
+    vkGetPhysicalDeviceFormatProperties(static_cast<VkPhysicalDevice>(device.native_physical_device()), vkFormat, &props);
+    if (!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT))
+        is_integer_format = true;
+
     VkPipelineColorBlendAttachmentState color_blend_attachment =
         wk::PipelineColorBlendAttachmentState{}
-            .set_blend_enable(VK_TRUE)
+            .set_blend_enable((config.blending_enabled && !is_integer_format) ? VK_TRUE : VK_FALSE)
             .set_color_write_mask(
                 VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                 VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT)

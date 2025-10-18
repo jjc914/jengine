@@ -1,6 +1,8 @@
 #ifndef engine_drivers_vulkan_VULKAN_RENDER_TARGET_HPP
 #define engine_drivers_vulkan_VULKAN_RENDER_TARGET_HPP
 
+#include "convert_vulkan.hpp"
+
 #include "engine/core/graphics/render_target.hpp"
 #include "engine/core/graphics/descriptor_set_layout.hpp"
 #include "engine/core/graphics/vertex_types.hpp"
@@ -15,6 +17,15 @@ class VulkanRenderTarget : public core::graphics::RenderTarget {
 public:
     VulkanRenderTarget(const wk::Device& device) : _device(device) {}
     ~VulkanRenderTarget() override = default;
+    
+    void push_constants(void* command_buffer, void* pipeline_layout, const void* data, size_t size, core::graphics::ShaderStageFlags stage_flags) override {
+        ENGINE_ASSERT(command_buffer, "Invalid command buffer");
+        ENGINE_ASSERT(size <= 128, "Push constants exceed Vulkan limit");
+
+        VkCommandBuffer cmd = static_cast<VkCommandBuffer>(command_buffer);
+        vkCmdPushConstants(cmd, static_cast<VkPipelineLayout>(pipeline_layout), ToVkShaderStageFlags(stage_flags), 0,
+            static_cast<uint32_t>(size), data);
+    }
 
     uint32_t frame_index() const override { return _frame_index; }
     uint32_t frame_count() const override { return _frame_count; }

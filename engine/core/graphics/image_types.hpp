@@ -18,6 +18,17 @@ enum class ImageFormat {
     SRGBA8,
     SBGRA8,
 
+    // integer color formats
+    R8_UINT,
+    R16_UINT,
+    R32_UINT,
+    RG8_UINT,
+    RG16_UINT,
+    RG32_UINT,
+    RGBA8_UINT,
+    RGBA16_UINT,
+    RGBA32_UINT,
+
     // hdr / float formats
     RGBA16_FLOAT,
     RGBA32_FLOAT,
@@ -45,7 +56,10 @@ enum class ImageUsage : uint32_t {
     DEPTH     = 1 << 1,
     PRESENT   = 1 << 2,
     STORAGE   = 1 << 3,
-    SAMPLING  = 1 << 4
+    SAMPLING  = 1 << 4,
+
+    COPY_SRC  = 1 << 5,
+    COPY_DST  = 1 << 6
 };
 
 inline ImageUsage operator|(ImageUsage a, ImageUsage b) {

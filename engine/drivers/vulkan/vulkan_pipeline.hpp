@@ -20,7 +20,8 @@ public:
         VkShaderModule vert, VkShaderModule frag,
         const core::graphics::VertexBinding& vertex_binding,
         const core::graphics::DescriptorSetLayout& layout,
-        const std::vector<core::graphics::ImageAttachmentInfo>& attachment_info);
+        const std::vector<core::graphics::ImageAttachmentInfo>& attachment_info,
+        const core::graphics::PipelineConfig& config);
     ~VulkanPipeline() override = default;
     
     void bind(void* cb) const override;
@@ -39,6 +40,7 @@ public:
     core::graphics::ImageFormat depth_format() const override { return _depth_format; }
 
     void* native_pipeline() const override { return static_cast<void*>(_pipeline.handle()); }
+    void* native_pipeline_layout() const override { return static_cast<void*>(_pipeline_layout.handle()); }
     void* native_render_pass() const override { return static_cast<void*>(_render_pass.handle()); }
     std::string backend_name() const override { return "Vulkan"; }
 

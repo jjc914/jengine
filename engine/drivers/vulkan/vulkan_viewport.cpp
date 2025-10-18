@@ -259,7 +259,7 @@ void VulkanViewport::end_frame() {
     std::vector<VkSemaphore> gq_wait_semaphores = { _image_available_semaphores[_current_index].handle() };
     std::vector<VkPipelineStageFlags> gq_wait_stage_flags = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     std::vector<VkSemaphore> gq_signal_semaphores = { _render_finished_semaphores[_current_index].handle() };
-    VkSubmitInfo gq_submit_info = wk::GraphicsQueueSubmitInfo{}
+    VkSubmitInfo gq_submit_info = wk::SubmitInfo{}
         .set_command_buffers(static_cast<uint32_t>(gq_command_buffers.size()), gq_command_buffers.data())
         .set_wait_semaphores(static_cast<uint32_t>(gq_wait_semaphores.size()), gq_wait_semaphores.data())
         .set_wait_dst_stage_masks(static_cast<uint32_t>(gq_wait_stage_flags.size()), gq_wait_stage_flags.data())

@@ -33,7 +33,8 @@ public:
         const core::graphics::Shader& vert, const core::graphics::Shader& frag,
         const core::graphics::DescriptorSetLayout& layout,
         const core::graphics::VertexBinding& vertex_binding, 
-        const std::vector<core::graphics::ImageAttachmentInfo>& attachment_info
+        const std::vector<core::graphics::ImageAttachmentInfo>& attachment_info,
+        const core::graphics::PipelineConfig& config
     ) const override;
     std::unique_ptr<core::graphics::RenderTarget> create_viewport(
         const core::window::Window& window,

@@ -19,6 +19,7 @@ VulkanTextureRenderTarget::VulkanTextureRenderTarget(
     bool use_depth,
     uint32_t max_in_flight)
     : VulkanRenderTarget(device.device()),
+      _command_pool(device.command_pool()),
       _allocator(device.allocator())
 {
     _width = width;
@@ -184,7 +185,7 @@ void* VulkanTextureRenderTarget::begin_frame(const core::graphics::Pipeline& pip
         return nullptr;
     }
 
-    VkClearValue color_clear = wk::ClearValue{}.set_color(0.1f, 0.2f, 0.4f).to_vk();
+    VkClearValue color_clear = wk::ClearValue{}.set_color(0, 0, 0).to_vk();
     VkClearValue depth_clear = wk::ClearValue{}.set_depth_stencil(1.0f, 0).to_vk();
 
     std::vector<VkClearValue> clear_values = { color_clear };
@@ -249,6 +250,124 @@ void VulkanTextureRenderTarget::resize(uint32_t width, uint32_t height) {
     _width = width;
     _height = height;
     rebuild();
+}
+
+std::vector<uint32_t> VulkanTextureRenderTarget::copy_color_to_cpu(uint32_t frame_index) {
+    ENGINE_ASSERT(frame_index < _color_images.size(), "Invalid frame index");
+
+    vkWaitForFences(_device.handle(), 1, &_in_flight_fences[frame_index].handle(), VK_TRUE, UINT64_MAX);
+
+    const uint32_t bpp = BytesPerPixel(_color_format);
+    const VkDeviceSize image_size = static_cast<VkDeviceSize>(_width) * _height * bpp;
+
+    // create staging buffer
+    wk::Buffer staging_buffer(_allocator.handle(),
+        wk::BufferCreateInfo{}
+            .set_size(image_size)
+            .set_usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT)
+            .set_sharing_mode(VK_SHARING_MODE_EXCLUSIVE)
+            .to_vk(),
+        wk::AllocationCreateInfo{}
+            .set_usage(VMA_MEMORY_USAGE_CPU_ONLY)
+            .to_vk()
+    );
+
+    // allocate one time command buffer
+    wk::CommandBuffer command_buffer(_device.handle(),
+        wk::CommandBufferAllocateInfo{}
+            .set_command_pool(_command_pool.handle())
+            .set_level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
+            .set_command_buffer_count(1)
+            .to_vk()
+    );
+
+    VkCommandBufferBeginInfo begin_info = wk::CommandBufferBeginInfo{}
+        .set_flags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)
+        .to_vk();
+    vkBeginCommandBuffer(command_buffer.handle(), &begin_info);
+
+    VkImage src_image = _color_images[frame_index].handle();
+
+    // transition layout
+    VkImageMemoryBarrier to_transfer = wk::ImageMemoryBarrier{}
+        .set_old_layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+        .set_new_layout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+        .set_src_queue_family_index(VK_QUEUE_FAMILY_IGNORED)
+        .set_dst_queue_family_index(VK_QUEUE_FAMILY_IGNORED)
+        .set_image(src_image)
+        .set_aspect(VK_IMAGE_ASPECT_COLOR_BIT)
+        .set_levels(0, 1)
+        .set_layers(0, 1)
+        .set_src_access(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
+        .set_dst_access(VK_ACCESS_TRANSFER_READ_BIT)
+        .to_vk();
+
+    vkCmdPipelineBarrier(command_buffer.handle(),
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &to_transfer
+    );
+
+    // TODO: add this to wulkan
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;   // tightly packed
+    region.bufferImageHeight = 0; // tightly packed
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = { 0, 0, 0 };
+    region.imageExtent = { _width, _height, 1 };
+
+    vkCmdCopyImageToBuffer(command_buffer.handle(),
+        src_image,
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        staging_buffer.handle(),
+        1, &region
+    );
+
+    // transfer image layout to restore
+    VkImageMemoryBarrier back_to_color = to_transfer;
+    back_to_color.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    back_to_color.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    back_to_color.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    back_to_color.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    vkCmdPipelineBarrier(command_buffer.handle(),
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &back_to_color
+    );
+
+    vkEndCommandBuffer(command_buffer.handle());
+
+    // submit and wait
+    wk::Fence fence(_device.handle(), wk::FenceCreateInfo{}.to_vk());
+
+    VkSubmitInfo submit = wk::SubmitInfo{}
+        .set_command_buffers(1, &command_buffer.handle())
+        .to_vk();
+
+    vkQueueSubmit(_device.graphics_queue().handle(), 1, &submit, fence.handle());
+    vkWaitForFences(_device.handle(), 1, &fence.handle(), VK_TRUE, UINT64_MAX);
+
+    // map and copy to cpu
+    std::vector<uint32_t> out;
+    out.resize(static_cast<size_t>(_width) * _height);
+
+    void* mapped = nullptr;
+    vmaMapMemory(_allocator.handle(), staging_buffer.allocation(), &mapped);
+    std::memcpy(out.data(), mapped, static_cast<size_t>(image_size));
+    vmaUnmapMemory(_allocator.handle(), staging_buffer.allocation());
+
+    return out;
 }
 
 void VulkanTextureRenderTarget::rebuild() {

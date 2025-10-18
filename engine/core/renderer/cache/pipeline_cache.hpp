@@ -32,9 +32,10 @@ public:
         const graphics::Shader& frag_shader,
         const graphics::DescriptorSetLayout& layout,
         const graphics::VertexBinding& vertex_binding,
-        const std::vector<graphics::ImageAttachmentInfo>& attachments)
+        const std::vector<graphics::ImageAttachmentInfo>& attachments,
+        const core::graphics::PipelineConfig& config)
     {
-        std::unique_ptr<graphics::Pipeline> pipeline = _device.create_pipeline(vert_shader, frag_shader, layout, vertex_binding, attachments);
+        std::unique_ptr<graphics::Pipeline> pipeline = _device.create_pipeline(vert_shader, frag_shader, layout, vertex_binding, attachments, config);
 
         PipelineCacheId id = _next_id++;
         _pipelines.emplace_back(std::move(pipeline));

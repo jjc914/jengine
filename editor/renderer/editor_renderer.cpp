@@ -1,12 +1,12 @@
 #include "editor_renderer.hpp"
+#include "editor_scene_view_renderer.hpp"
 
 #include "engine/drivers/vulkan/vulkan_instance.hpp"
-
 #include "engine/import/mesh.hpp"
 
+#include "engine/core/debug/logger.hpp"
 #include "editor/components/transform.hpp"
 #include "editor/components/mesh_renderer.hpp"
-
 #include "editor/scene/editor_camera.hpp"
 
 #include <imgui.h>
@@ -19,57 +19,34 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
     _width = main_window.width();
     _height = main_window.height();
 
-    // instance
+    // driver setup
     _instance = std::make_unique<engine::drivers::vulkan::VulkanInstance>();
     _device = _instance->create_device(main_window);
 
-    // mesh cache
+    // caches
     _mesh_cache = std::make_unique<engine::core::renderer::cache::MeshCache>(*_device);
+    _shader_cache = std::make_unique<engine::core::renderer::cache::ShaderCache>(*_device);
+    _material_cache = std::make_unique<engine::core::renderer::cache::MaterialCache>(*_device);
+    _pipeline_cache = std::make_unique<engine::core::renderer::cache::PipelineCache>(*_device);
+
     _mesh_cache_entries.clear();
+    _shader_cache_entries.clear();
+    _material_cache_entries.clear();
+    _pipeline_cache_entries.clear();
 
     // default meshes
     import::ObjModel model = import::ReadObj("res/sphere.obj");
-    engine::core::renderer::cache::MeshCacheId sphere_mesh =_mesh_cache->register_mesh(model);
-    _mesh_cache_entries["sphere"] = sphere_mesh;
-
-    // shader cache
-    _shader_cache = std::make_unique<engine::core::renderer::cache::ShaderCache>(*_device);
-    _shader_cache_entries.clear();
+    _mesh_cache_entries["sphere"] = _mesh_cache->register_mesh(model);
 
     // default shaders
-    engine::core::renderer::cache::ShaderCacheId editor_view_color_vert_shader = _shader_cache->register_shader(
-        engine::core::graphics::ShaderStageFlags::VERTEX,
-        "shaders/editor_view_color.vert.spv"
-    );
-    _shader_cache_entries["editor_view_color_vert"] = editor_view_color_vert_shader;
+    _shader_cache_entries["editor_view_color_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/editor_view_color.vert.spv");
+    _shader_cache_entries["editor_view_color_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/editor_view_color.frag.spv");
+    _shader_cache_entries["editor_present_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/editor_present.vert.spv");
+    _shader_cache_entries["editor_present_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/editor_present.frag.spv");
+    _shader_cache_entries["editor_pick_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/editor_pick.vert.spv");
+    _shader_cache_entries["editor_pick_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/editor_pick.frag.spv");
 
-    engine::core::renderer::cache::ShaderCacheId editor_view_color_frag_shader = _shader_cache->register_shader(
-        engine::core::graphics::ShaderStageFlags::FRAGMENT,
-        "shaders/editor_view_color.frag.spv"
-    );
-    _shader_cache_entries["editor_view_color_frag"] = editor_view_color_frag_shader;
-
-    engine::core::renderer::cache::ShaderCacheId editor_present_vert_shader = _shader_cache->register_shader(
-        engine::core::graphics::ShaderStageFlags::VERTEX,
-        "shaders/editor_present.vert.spv"
-    );
-    _shader_cache_entries["editor_present_vert"] = editor_present_vert_shader;
-
-    engine::core::renderer::cache::ShaderCacheId editor_present_frag_shader = _shader_cache->register_shader(
-        engine::core::graphics::ShaderStageFlags::FRAGMENT,
-        "shaders/editor_present.frag.spv"
-    );
-    _shader_cache_entries["editor_present_frag"] = editor_present_frag_shader;
-
-    // material cache
-    _material_cache = std::make_unique<engine::core::renderer::cache::MaterialCache>(*_device);
-    _material_cache_entries.clear();
-
-    // pipeline cache
-    _pipeline_cache = std::make_unique<engine::core::renderer::cache::PipelineCache>(*_device);
-    _pipeline_cache_entries.clear();
-
-    // scene geometry vertex binding
+    // vertex bindings
     engine::core::graphics::VertexBinding vertex_binding =
         engine::core::graphics::VertexBinding{}
             .set_binding(0)
@@ -85,35 +62,41 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
                     .set_offset(offsetof(import::ObjVertex, import::ObjVertex::normal))
             });
 
-    // offscreen editor view attachments
+    engine::core::graphics::VertexBinding pick_binding =
+        engine::core::graphics::VertexBinding{}
+            .set_binding(0)
+            .set_stride(sizeof(import::ObjVertex))
+            .set_attributes({
+                engine::core::graphics::VertexAttribute{}
+                    .set_location(0)
+                    .set_format(engine::core::graphics::VertexFormat::FLOAT3)
+                    .set_offset(offsetof(import::ObjVertex, import::ObjVertex::position))
+            });
+
+    // attachment formats
     std::vector<engine::core::graphics::ImageAttachmentInfo> view_attachments = {
-        engine::core::graphics::ImageAttachmentInfo{}
-            .set_format(engine::core::graphics::ImageFormat::RGBA8_UNORM)
-            .set_usage(engine::core::graphics::ImageUsage::COLOR | engine::core::graphics::ImageUsage::SAMPLING),
-        engine::core::graphics::ImageAttachmentInfo{}
-            .set_format(engine::core::graphics::ImageFormat::D32_FLOAT)
-            .set_usage(engine::core::graphics::ImageUsage::DEPTH)
+        { engine::core::graphics::ImageFormat::RGBA8_UNORM, engine::core::graphics::ImageUsage::COLOR | engine::core::graphics::ImageUsage::SAMPLING },
+        { engine::core::graphics::ImageFormat::D32_FLOAT,   engine::core::graphics::ImageUsage::DEPTH }
     };
 
-    // present attachments
+    std::vector<engine::core::graphics::ImageAttachmentInfo> pick_attachments = {
+        { engine::core::graphics::ImageFormat::R32_UINT, engine::core::graphics::ImageUsage::COLOR | engine::core::graphics::ImageUsage::COPY_SRC },
+        { engine::core::graphics::ImageFormat::D32_FLOAT, engine::core::graphics::ImageUsage::DEPTH }
+    };
+
     std::vector<engine::core::graphics::ImageAttachmentInfo> present_attachments = {
-        engine::core::graphics::ImageAttachmentInfo{}
-            .set_format(_device->present_format())
-            .set_usage(engine::core::graphics::ImageUsage::PRESENT),
-        engine::core::graphics::ImageAttachmentInfo{}
-            .set_format(_device->depth_format())
-            .set_usage(engine::core::graphics::ImageUsage::DEPTH)
+        { _device->present_format(), engine::core::graphics::ImageUsage::PRESENT },
+        { _device->depth_format(),   engine::core::graphics::ImageUsage::DEPTH }
     };
 
-    // scene descriptor layout
-    engine::core::graphics::DescriptorLayoutDescription layout_desc =
+    // descriptor layouts
+    engine::core::graphics::DescriptorLayoutDescription scene_layout_desc =
         engine::core::graphics::DescriptorLayoutDescription{}
             .add_binding(engine::core::graphics::DescriptorLayoutBinding{}
                 .set_binding(0)
                 .set_type(engine::core::graphics::DescriptorType::UNIFORM_BUFFER)
                 .set_visibility(engine::core::graphics::ShaderStageFlags::VERTEX));
-    
-    // present descriptor layout
+
     engine::core::graphics::DescriptorLayoutDescription present_layout_desc =
         engine::core::graphics::DescriptorLayoutDescription{}
             .add_binding(engine::core::graphics::DescriptorLayoutBinding{}
@@ -121,142 +104,142 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
                 .set_type(engine::core::graphics::DescriptorType::COMBINED_IMAGE_SAMPLER)
                 .set_visibility(engine::core::graphics::ShaderStageFlags::FRAGMENT));
 
-    // offscreen editor view pipeline
-    engine::core::renderer::cache::PipelineCacheId editor_view_color_pipeline = _pipeline_cache->register_pipeline(
-        _shader_cache->get(editor_view_color_vert_shader),
-        _shader_cache->get(editor_view_color_frag_shader),
-        _material_cache->get_or_create_layout(layout_desc),
-        vertex_binding,
-        view_attachments
-    );
-    _pipeline_cache_entries["editor_view_color"] = editor_view_color_pipeline;
-
-    // present pipeline
-    engine::core::renderer::cache::PipelineCacheId editor_present_pipeline = _pipeline_cache->register_pipeline(
-        _shader_cache->get(editor_present_vert_shader),
-        _shader_cache->get(editor_present_frag_shader),
-        _material_cache->get_or_create_layout(present_layout_desc),
-        engine::core::graphics::VertexBinding{},
-        present_attachments
-    );
-    _pipeline_cache_entries["editor_present"] = editor_present_pipeline;
-
-    // default material
-    engine::core::renderer::cache::MaterialCacheId editor_camera_default_material = _material_cache->register_material(
-        _pipeline_cache->get(editor_view_color_pipeline),
-        layout_desc,
-        sizeof(UniformBufferObject)
-    );
-    _material_cache_entries["editor_view_default"] = editor_camera_default_material;
-    
-    // render targets
-    _editor_view_target = _device->create_texture_render_target(_pipeline_cache->get(pipeline_id("editor_view_color")), _width, _height);
-    _main_viewport = _device->create_viewport(main_window, _pipeline_cache->get(pipeline_id("editor_present")), _width, _height);
-
-    // gui layer
-    _editor_gui = std::make_unique<gui::EditorGui>(*_instance, *_device, _pipeline_cache->get(pipeline_id("editor_present")), main_window);
-
-    // imgui register offscreen textures
-    _editor_camera_preview_textures.clear();
-    for (uint32_t i = 0; i < _editor_view_target->frame_count(); ++i) {
-        _editor_camera_preview_textures.emplace_back(
-            _editor_gui->register_texture(static_cast<VkImageView>(_editor_view_target->native_frame_image_view(i)))
+    // default pipelines
+    _pipeline_cache_entries["editor_view_color"] =
+        _pipeline_cache->register_pipeline(
+            _shader_cache->get(_shader_cache_entries["editor_view_color_vert"]),
+            _shader_cache->get(_shader_cache_entries["editor_view_color_frag"]),
+            _material_cache->get_or_create_layout(scene_layout_desc),
+            vertex_binding,
+            view_attachments,
+            engine::core::graphics::PipelineConfig{}
+                .set_blending(true)
+                .set_depth_test(true)
+                .set_depth_write(true)
         );
-    }
 
-    // create editor view camera
-    _editor_view_camera = std::make_unique<scene::EditorCamera>();
-    _editor_view_camera->resize(_width, _height);
-    _editor_view_camera->look_at(glm::vec3(0.0f));
+    _pipeline_cache_entries["editor_pick"] =
+        _pipeline_cache->register_pipeline(
+            _shader_cache->get(_shader_cache_entries["editor_pick_vert"]),
+            _shader_cache->get(_shader_cache_entries["editor_pick_frag"]),
+            _material_cache->get_or_create_layout(scene_layout_desc),
+            pick_binding,
+            pick_attachments,
+            engine::core::graphics::PipelineConfig{}
+                .set_blending(false)
+                .set_depth_test(true)
+                .set_depth_write(true)
+                .set_push_constant(sizeof(uint32_t), engine::core::graphics::ShaderStageFlags::FRAGMENT)
+        );
+
+    _pipeline_cache_entries["editor_present"] =
+        _pipeline_cache->register_pipeline(
+            _shader_cache->get(_shader_cache_entries["editor_present_vert"]),
+            _shader_cache->get(_shader_cache_entries["editor_present_frag"]),
+            _material_cache->get_or_create_layout(present_layout_desc),
+            engine::core::graphics::VertexBinding{},
+            present_attachments,
+            engine::core::graphics::PipelineConfig{}
+                .set_blending(true)
+                .set_depth_test(true)
+                .set_depth_write(true)
+        );
+
+    // default materials
+    _material_cache_entries["editor_view_default"] =
+        _material_cache->register_material(
+            _pipeline_cache->get(_pipeline_cache_entries["editor_view_color"]),
+            scene_layout_desc,
+            sizeof(UniformBufferObject)
+        );
+
+    _material_cache_entries["editor_view_pick"] =
+        _material_cache->register_material(
+            _pipeline_cache->get(_pipeline_cache_entries["editor_pick"]),
+            scene_layout_desc,
+            sizeof(UniformBufferObject)
+        );
+    
+    _material_cache_entries["editor_present"] =
+        _material_cache->register_material(
+            _pipeline_cache->get(_pipeline_cache_entries["editor_present"]),
+            present_layout_desc,
+            0
+        );
+
+    // gui
+    _editor_gui = std::make_unique<gui::EditorGui>(
+        *_instance,
+        *_device,
+        _pipeline_cache->get(_pipeline_cache_entries["editor_present"]),
+        main_window
+    );
+
+    // scene view renderer
+    EditorRendererContext context{
+        _device.get(),
+        *_pipeline_cache,
+        *_material_cache,
+        *_mesh_cache,
+        *_editor_gui,
+        _pipeline_cache_entries["editor_view_color"],
+        _pipeline_cache_entries["editor_pick"],
+        _material_cache_entries["editor_view_pick"]
+    };
+
+    _scene_view_renderer = std::make_unique<EditorSceneViewRenderer>(context, _width, _height);
+
+    // present viewport
+    _main_viewport = _device->create_viewport(
+        main_window,
+        _pipeline_cache->get(_pipeline_cache_entries["editor_present"]),
+        _width,
+        _height
+    );
 }
 
 void EditorRenderer::resize(uint32_t width, uint32_t height) {
     _width = width;
     _height = height;
-
-    _main_viewport->resize(_width, _height);  
+    _main_viewport->resize(_width, _height);
+    _scene_view_renderer->resize(_width, _height);
 }
 
 void EditorRenderer::render_scene(engine::core::scene::Scene& scene) {
     _frame_graph.clear();
 
-    // scene pass
-    _scene_pass_id = _frame_graph.add_pass(
-        &_pipeline_cache->get(pipeline_id("editor_view_color")),
-        _editor_view_target.get(),
-        [this, &scene](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
-            ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer.");
-            void* cb = ctx.command_buffer;
+    // register scene view renderer passes to frame graph
+    _scene_view_renderer->register_passes(scene, _frame_graph);
 
-            for (auto [entity, transform, mesh_renderer] : scene.view<components::Transform, components::MeshRenderer>()) {
-                 if (!mesh_renderer.visible) continue;
-
-                engine::core::graphics::MeshBuffer& mesh = _mesh_cache->get(mesh_renderer.mesh_id);
-                engine::core::graphics::Material& material = _material_cache->get(mesh_renderer.material_id);
-
-                UniformBufferObject ubo{};
-                ubo.model = transform.matrix();
-                ubo.view = _editor_view_camera->view();
-                ubo.proj = _editor_view_camera->projection();
-                ubo.proj[1][1] *= -1.0f;
-
-                material.update_uniform_buffer(&ubo);
-
-                mesh.bind(cb);
-                material.bind(cb);
-                _editor_view_target->submit_draws(mesh.index_count());
-            }
-        }
-    );
-
-    // present pass
+    // presentation pass
     _present_pass_id = _frame_graph.add_pass(
-        &_pipeline_cache->get(pipeline_id("editor_present")),
+        &_pipeline_cache->get(_pipeline_cache_entries["editor_present"]),
         _main_viewport.get(),
-        [this](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
-            ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer.");
+        [this, &scene](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
             void* cb = ctx.command_buffer;
+            ENGINE_ASSERT(cb, "FrameGraph expects a valid command buffer.");
 
-            gui::GuiContext context;
-            context.command_buffer = cb;
-            context.scene_view.texture_id = _editor_camera_preview_textures[_editor_view_target->frame_index()];
-            context.scene_view.camera = _editor_view_camera.get();
-            _editor_gui->on_gui(context);
+            gui::GuiContext gui_context;
+            gui_context.command_buffer = cb;
+            gui_context.scene_view.texture_id = _scene_view_renderer->texture_id(_scene_view_renderer->frame_index());
+            gui_context.scene_view.camera = &_scene_view_renderer->camera();
+            gui_context.scene_view.scene = &scene;
+            gui_context.scene_view.selected_entity = _scene_view_renderer->selected_entity();
 
-            uint32_t new_width = std::max(1, static_cast<int>(context.scene_view.out_size.x));
-            uint32_t new_height = std::max(1, static_cast<int>(context.scene_view.out_size.y));
-            if (new_width != _width || new_height != _height) {
-                _pending_editor_view_size = glm::vec2(new_width, new_height);
-            }
-        }
-    );
+            _editor_gui->on_gui(gui_context);
 
-    engine::core::renderer::RenderPassContext context{};
-    _frame_graph.execute(context);
+            _scene_view_renderer->resize(gui_context.scene_view.out_size.x, gui_context.scene_view.out_size.y);
 
-    // handle resize
-    if (_pending_editor_view_size) {
-        _device->wait_idle();
-
-        _width  = _pending_editor_view_size->x;
-        _height = _pending_editor_view_size->y;
-
-        _editor_view_camera->resize(_width, _height);
-        _editor_view_target->resize(_width, _height);
-
-        for (auto id : _editor_camera_preview_textures)
-            _editor_gui->unregister_texture(id);
-        _editor_camera_preview_textures.clear();
-        for (uint32_t i = 0; i < _editor_view_target->frame_count(); ++i) {
-            _editor_camera_preview_textures.emplace_back(
-                _editor_gui->register_texture(
-                    static_cast<VkImageView>(_editor_view_target->native_frame_image_view(i))
-                )
+            _scene_view_renderer->handle_picking(_scene_view_renderer->frame_index(),
+                glm::vec2(gui_context.scene_view.out_pos.x, gui_context.scene_view.out_pos.y),
+                glm::vec2(gui_context.scene_view.out_size.x, gui_context.scene_view.out_size.y)
             );
         }
+    );
 
-        _pending_editor_view_size.reset();
-    }
+    // execute frame graph
+    engine::core::renderer::RenderPassContext context{};
+    _frame_graph.execute(context);
 }
 
 } // namespace editor::renderer

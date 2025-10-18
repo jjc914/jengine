@@ -201,14 +201,16 @@ std::unique_ptr<core::graphics::Pipeline> VulkanDevice::create_pipeline(
     const core::graphics::Shader& vert, const core::graphics::Shader& frag,
     const core::graphics::DescriptorSetLayout& layout,
     const core::graphics::VertexBinding& vertex_binding, 
-    const std::vector<core::graphics::ImageAttachmentInfo>& attachment_info
+    const std::vector<core::graphics::ImageAttachmentInfo>& attachment_info,
+    const core::graphics::PipelineConfig& config
 ) const {
     return std::make_unique<VulkanPipeline>(
         *this,
         static_cast<VkShaderModule>(vert.native_shader()), static_cast<VkShaderModule>(frag.native_shader()),
         vertex_binding,
         layout,
-        attachment_info
+        attachment_info,
+        config
     );
 }
 

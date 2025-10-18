@@ -50,6 +50,11 @@ public:
         return _ecs.view<Components...>();
     }
 
+    template<typename Func>
+    void for_each_component(Entity e, Func&& func) {
+        _ecs.for_each_component(e, func);
+    }
+
     void set_entity_name(ecs::Entity e, const std::string& name) { _entity_names[e] = name; }
     const std::string& entity_name(ecs::Entity e) const {
         static const std::string unknown = "<unnamed>";
