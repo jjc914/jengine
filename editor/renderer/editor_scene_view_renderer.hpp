@@ -24,12 +24,12 @@
 
 namespace editor::renderer {
 
-class EditorRendererContext;
+class EditorRenderer;
 
 class EditorSceneViewRenderer {
 public:
     EditorSceneViewRenderer(
-        EditorRendererContext& context,
+        EditorRenderer& editor_renderer,
         uint32_t width,
         uint32_t height
     );
@@ -78,12 +78,14 @@ private:
     std::optional<glm::vec2> _pending_resize;
     engine::core::scene::Entity _selected_entity{0};
 
+    engine::core::renderer::cache::PipelineCacheId _mesh_normal_pipeline_id;
+    engine::core::renderer::cache::PipelineCacheId _mesh_pick_pipeline_id;
+    engine::core::renderer::cache::MaterialCacheId _mesh_pick_material_id;
+    engine::core::renderer::cache::PipelineCacheId _mesh_outline_pipeline_id;
+    engine::core::renderer::cache::MaterialCacheId _mesh_outline_material_id;
     engine::core::renderer::cache::MeshCacheId _cube_id;
     engine::core::renderer::cache::PipelineCacheId _skybox_pipeline_id;
     engine::core::renderer::cache::MaterialCacheId _skybox_material_id;
-    engine::core::renderer::cache::PipelineCacheId _view_pipeline_id;
-    engine::core::renderer::cache::PipelineCacheId _pick_pipeline_id;
-    engine::core::renderer::cache::MaterialCacheId _pick_material_id;
 };
 
 } // namespace editor::renderer

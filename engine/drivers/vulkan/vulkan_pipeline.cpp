@@ -204,6 +204,9 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
             .set_src_color_blend_factor(VK_BLEND_FACTOR_SRC_ALPHA)
             .set_dst_color_blend_factor(VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA)
             .set_color_blend_op(VK_BLEND_OP_ADD)
+            .set_src_alpha_blend_factor(VK_BLEND_FACTOR_ONE)
+            .set_dst_alpha_blend_factor(VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA)
+            .set_alpha_blend_op(VK_BLEND_OP_ADD)
             .to_vk();
 
     VkPipelineColorBlendStateCreateInfo color_blend_state_ci =

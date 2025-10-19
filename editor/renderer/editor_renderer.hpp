@@ -39,21 +39,6 @@ struct UniformBufferObject {
     glm::mat4 proj;
 };
 
-struct EditorRendererContext {
-    engine::core::graphics::Device* device;
-    engine::core::renderer::cache::PipelineCache& pipeline_cache;
-    engine::core::renderer::cache::MaterialCache& material_cache;
-    engine::core::renderer::cache::MeshCache& mesh_cache;
-    gui::EditorGui& gui;
-
-    engine::core::renderer::cache::MeshCacheId cube_id;
-    engine::core::renderer::cache::PipelineCacheId skybox_pipeline;
-    engine::core::renderer::cache::MaterialCacheId skybox_material;
-    engine::core::renderer::cache::PipelineCacheId view_pipeline;
-    engine::core::renderer::cache::PipelineCacheId pick_pipeline;
-    engine::core::renderer::cache::MaterialCacheId pick_material;
-};
-
 class EditorRenderer final : public engine::core::renderer::Renderer {
 public:
     EditorRenderer(const engine::core::window::Window& main_window);
@@ -88,6 +73,25 @@ public:
         ENGINE_ASSERT(it != _pipeline_cache_entries.end(), "Mesh not found in mesh cache entries: {}", pipeline);
         return it->second;
     }
+
+    engine::core::graphics::Device* device() const { return _device.get(); }
+    gui::EditorGui& gui() const { return *_editor_gui; }
+
+    engine::core::renderer::cache::MeshCache& mesh_cache() const {
+        return *_mesh_cache;
+    };
+
+    engine::core::renderer::cache::ShaderCache& shader_cache() const {
+        return *_shader_cache;
+    };
+
+    engine::core::renderer::cache::MaterialCache& material_cache() const {
+        return *_material_cache;
+    };
+
+    engine::core::renderer::cache::PipelineCache& pipeline_cache() const {
+        return *_pipeline_cache;
+    };
 
 private:
     uint32_t _width;

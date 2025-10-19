@@ -8,23 +8,32 @@
 #include <imgui_internal.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
+
 #include <algorithm>
 
 namespace editor::renderer {
 
 EditorSceneViewRenderer::EditorSceneViewRenderer(
-    EditorRendererContext& context,
+    EditorRenderer& editor_renderer,
     uint32_t width,
-    uint32_t height
-)
-    : _device(context.device),
-      _pipeline_cache(context.pipeline_cache),
-      _material_cache(context.material_cache),
-      _mesh_cache(context.mesh_cache),
-      _gui(context.gui),
-      _width(width),
-      _height(height)
+    uint32_t height)
+    : _width(width),
+      _height(height),
+      _device(editor_renderer.device()),
+      _gui(editor_renderer.gui()),
+      _pipeline_cache(editor_renderer.pipeline_cache()),
+      _mesh_cache(editor_renderer.mesh_cache()),
+      _material_cache(editor_renderer.material_cache())
 {
+    _mesh_normal_pipeline_id = editor_renderer.pipeline_id("mesh_normal");
+    _mesh_pick_pipeline_id = editor_renderer.pipeline_id("mesh_pick");
+    _mesh_pick_material_id = editor_renderer.material_id("mesh_pick");
+    _mesh_outline_pipeline_id = editor_renderer.pipeline_id("mesh_outline");
+    _mesh_outline_material_id = editor_renderer.material_id("mesh_outline");
+    _cube_id = editor_renderer.mesh_id("cube");
+    _skybox_pipeline_id = editor_renderer.pipeline_id("skybox");
+    _skybox_material_id = editor_renderer.material_id("skybox");
+
     // camera
     _camera = std::make_unique<editor::scene::EditorCamera>();
     _camera->resize(width, height);
@@ -32,12 +41,12 @@ EditorSceneViewRenderer::EditorSceneViewRenderer(
 
     // render targets
     _view_target = _device->create_texture_render_target(
-        _pipeline_cache.get(context.view_pipeline),
+        _pipeline_cache.get(_mesh_normal_pipeline_id),
         width,
         height
     );
     _pick_target = _device->create_texture_render_target(
-        _pipeline_cache.get(context.pick_pipeline),
+        _pipeline_cache.get(_mesh_pick_pipeline_id),
         width,
         height
     );
@@ -71,13 +80,6 @@ EditorSceneViewRenderer::EditorSceneViewRenderer(
         );
         _imgui_texture_ids.emplace_back(id);
     }
-
-    _cube_id = context.cube_id;
-    _skybox_pipeline_id = context.skybox_pipeline;
-    _skybox_material_id = context.skybox_material;
-    _view_pipeline_id = context.view_pipeline;
-    _pick_pipeline_id = context.pick_pipeline;
-    _pick_material_id = context.pick_material;
 }
 
 void EditorSceneViewRenderer::register_passes(
@@ -91,6 +93,7 @@ void EditorSceneViewRenderer::register_passes(
         [this](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
             ctx.command_buffer = ctx.target->begin_frame(*ctx.pipeline);
             ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
+            ctx.pipeline->bind(ctx.command_buffer);
 
             engine::core::graphics::Material& material = _material_cache.get(_skybox_material_id);
             engine::core::graphics::MeshBuffer& mesh = _mesh_cache.get(_cube_id);
@@ -111,21 +114,64 @@ void EditorSceneViewRenderer::register_passes(
         }
     );
 
-    // scene color pass
+    // selection outline pass
     graph.add_pass(
-        &_pipeline_cache.get(_view_pipeline_id),
+        &_pipeline_cache.get(_mesh_outline_pipeline_id),
         _view_target.get(),
         [this, &scene](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
             ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
-            _pipeline_cache.get(_view_pipeline_id).bind(ctx.command_buffer);
+            ctx.pipeline->bind(ctx.command_buffer);
+
+            for (auto [entity, transform, mesh_renderer] :
+                 scene.view<components::Transform, components::MeshRenderer>())
+            {
+                if (!mesh_renderer.visible) continue;
+                if (_selected_entity != entity) continue;
+
+                engine::core::graphics::MeshBuffer& mesh = _mesh_cache.get(mesh_renderer.mesh_id);
+                engine::core::graphics::Material& material = _material_cache.get(_mesh_outline_material_id);
+
+                UniformBufferObject ubo{};
+                ubo.model = transform.matrix();
+                ubo.view = _camera->view();
+                ubo.proj = _camera->projection();
+                ubo.proj[1][1] *= -1.0f;
+
+                material.update_uniform_buffer(&ubo);
+                mesh.bind(ctx.command_buffer);
+                material.bind(ctx.command_buffer);
+
+                struct {
+                    glm::vec4 color;
+                    float width;
+                    float falloff;
+                } pc{
+                    glm::vec4{1.0f, 1.0f, 1.0f, 1.0f},
+                    0.02f
+                };
+                _view_target->push_constants(ctx.command_buffer, ctx.pipeline->native_pipeline_layout(), &pc, sizeof(pc),
+                    engine::core::graphics::ShaderStageFlags::VERTEX);
+
+                _view_target->submit_draws(mesh.index_count());
+            }
+        }
+    );
+
+    // scene color pass
+    graph.add_pass(
+        &_pipeline_cache.get(_mesh_normal_pipeline_id),
+        _view_target.get(),
+        [this, &scene](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
+            ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
+            ctx.pipeline->bind(ctx.command_buffer);
 
             for (auto [entity, transform, mesh_renderer] :
                  scene.view<components::Transform, components::MeshRenderer>())
             {
                 if (!mesh_renderer.visible) continue;
 
-                auto& mesh = _mesh_cache.get(mesh_renderer.mesh_id);
-                auto& material = _material_cache.get(mesh_renderer.material_id);
+                engine::core::graphics::MeshBuffer& mesh = _mesh_cache.get(mesh_renderer.mesh_id);
+                engine::core::graphics::Material& material = _material_cache.get(mesh_renderer.material_id);
 
                 UniformBufferObject ubo{};
                 ubo.model = transform.matrix();
@@ -146,19 +192,20 @@ void EditorSceneViewRenderer::register_passes(
     // scene pick pass
     const uint32_t readback_index = _pick_target->frame_index();
     graph.add_pass(
-        &_pipeline_cache.get(_pick_pipeline_id),
+        &_pipeline_cache.get(_mesh_pick_pipeline_id),
         _pick_target.get(),
         [this, &scene, readback_index](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
             ctx.command_buffer = ctx.target->begin_frame(*ctx.pipeline);
             ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
+            ctx.pipeline->bind(ctx.command_buffer);
 
             for (auto [entity, transform, mesh_renderer] :
                 scene.view<components::Transform, components::MeshRenderer>())
             {
                 if (!mesh_renderer.visible) continue;
 
-                auto& mesh = _mesh_cache.get(mesh_renderer.mesh_id);
-                auto& material = _material_cache.get(_pick_material_id);
+                engine::core::graphics::MeshBuffer& mesh = _mesh_cache.get(mesh_renderer.mesh_id);
+                engine::core::graphics::Material& material = _material_cache.get(_mesh_pick_material_id);
 
                 UniformBufferObject ubo{};
                 ubo.model = transform.matrix();

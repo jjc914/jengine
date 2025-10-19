@@ -50,7 +50,7 @@ int App::run() {
     _default_scene.add_component<components::Transform>(default_entity);
     _default_scene.add_component<components::MeshRenderer>(default_entity,
         _renderer->mesh_id("sphere"),
-        _renderer->material_id("editor_view_default")
+        _renderer->material_id("mesh_normal")
     );
 
     // main loop
