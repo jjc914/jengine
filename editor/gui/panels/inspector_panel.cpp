@@ -24,7 +24,12 @@ void InspectorPanel::on_gui(GuiContext& context) {
             auto& t = *reinterpret_cast<components::Transform*>(ptr);
             ImGui::SeparatorText("Transform");
             ImGui::DragFloat3("Position", &t.position.x, 0.1f);
-            ImGui::DragFloat4("Rotation", &t.rotation.x, 0.1f);
+
+            glm::vec3 euler_deg = glm::degrees(glm::eulerAngles(t.rotation));
+            if (ImGui::DragFloat3("Rotation", &euler_deg.x, 0.5f)) {
+                t.rotation = glm::quat(glm::radians(euler_deg));
+            }
+            
             ImGui::DragFloat3("Scale",    &t.scale.x, 0.1f);
         } else if (type == typeid(components::MeshRenderer)) {
             auto& m = *reinterpret_cast<components::MeshRenderer*>(ptr);

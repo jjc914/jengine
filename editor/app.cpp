@@ -11,7 +11,9 @@
 #include "engine/core/debug/logger.hpp"
 
 #include "editor/components/transform.hpp"
+#include "editor/components/lights.hpp"
 #include "editor/components/mesh_renderer.hpp"
+#include "editor/components/gizmo_renderer.hpp"
 
 #include <imgui.h>
 #include <glm/gtx/transform.hpp>
@@ -45,12 +47,42 @@ int App::run() {
 
     // create scene // TODO: move to a helper function
     _default_scene = std::move(engine::core::scene::Scene());
-    engine::core::scene::Entity default_entity = _default_scene.create_entity();
 
-    _default_scene.add_component<components::Transform>(default_entity);
+    // default entity
+    engine::core::scene::Entity default_entity = _default_scene.create_entity();
+    _default_scene.add_component<components::Transform>(default_entity,
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
+        glm::vec3(1.0f, 1.0f, 1.0f)
+    );
     _default_scene.add_component<components::MeshRenderer>(default_entity,
         _renderer->mesh_id("sphere"),
         _renderer->material_id("mesh_normal")
+    );
+
+    engine::core::scene::Entity default_entity_2 = _default_scene.create_entity();
+    _default_scene.add_component<components::Transform>(default_entity_2,
+        glm::vec3(-2.0f, 0.0f, 0.0f),
+        glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
+        glm::vec3(1.0f, 1.0f, 1.0f)
+    );
+    _default_scene.add_component<components::MeshRenderer>(default_entity_2,
+        _renderer->mesh_id("cube"),
+        _renderer->material_id("mesh_normal")
+    );
+
+    // default lights
+    engine::core::scene::Entity default_light = _default_scene.create_entity();
+    _default_scene.add_component<components::Transform>(default_light,
+        glm::vec3(5.0f, 0.0f, 0.0f),
+        glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
+        glm::vec3(0.1f, 0.1f, 0.1f)
+    );
+    _default_scene.add_component<components::DirectionalLight>(default_light);
+    _default_scene.add_component<components::PointLight>(default_light);
+    _default_scene.add_component<components::GizmoRenderer>(default_light,
+        _renderer->mesh_id("cube"),
+        _renderer->material_id("gizmo")
     );
 
     // main loop

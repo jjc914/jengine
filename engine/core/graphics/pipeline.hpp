@@ -11,20 +11,63 @@
 
 namespace engine::core::graphics {
 
+enum class CullMode : uint32_t {
+    NONE = 0,
+    FRONT = 0x1,
+    BACK = 0x2,
+    FRONT_AND_BACK = 0x3
+};
+
+constexpr inline CullMode operator|(CullMode a, CullMode b) noexcept {
+    return static_cast<CullMode>(
+        static_cast<uint32_t>(a) | static_cast<uint32_t>(b)
+    );
+}
+
+constexpr inline CullMode& operator|=(CullMode& a, CullMode b) noexcept {
+    a = a | b;
+    return a;
+}
+
+constexpr inline CullMode operator&(CullMode a, CullMode b) noexcept {
+    return static_cast<CullMode>(
+        static_cast<uint32_t>(a) & static_cast<uint32_t>(b)
+    );
+}
+
+constexpr inline CullMode& operator&=(CullMode& a, CullMode b) noexcept {
+    a = a & b;
+    return a;
+}
+
+constexpr inline bool operator!(CullMode a) noexcept {
+    return static_cast<uint32_t>(a) == 0;
+}
+
+enum class PolygonMode {
+    FILL,
+    LINE,
+    POINT
+};
+
 struct PipelineConfig {
+    struct PushConstantRange{
+        uint32_t size = 0;
+        ShaderStageFlags stage_flags = ShaderStageFlags::NONE;
+    };
+
     bool blending_enabled = true;
     bool depth_test_enabled = true;
     bool depth_write_enabled = true;
     CullMode cull_mode = CullMode::BACK;
-    struct {
-        uint32_t size = 0;
-        ShaderStageFlags stage_flags = ShaderStageFlags::NONE;
-    } push_constant;
+    PolygonMode polygon_mode = PolygonMode::FILL;
+    PushConstantRange push_constant;
 
     PipelineConfig& set_blending(bool b) { blending_enabled = b; return *this; }
     PipelineConfig& set_depth_test(bool b) { depth_test_enabled = b; return *this; }
     PipelineConfig& set_depth_write(bool b) { depth_write_enabled = b; return *this; }
     PipelineConfig& set_cull_mode(CullMode m) { cull_mode = m; return *this; }
+    PipelineConfig& set_polygon_mode(PolygonMode m) { polygon_mode = m; return *this; }
     PipelineConfig& set_push_constant(uint32_t s, ShaderStageFlags f) { push_constant.size = s; push_constant.stage_flags = f; return *this; }
 };
 

@@ -2,6 +2,7 @@
 
 #include "editor/components/transform.hpp"
 #include "editor/components/mesh_renderer.hpp"
+#include "editor/components/gizmo_renderer.hpp"
 #include "engine/core/debug/logger.hpp"
 #include "editor_renderer.hpp"
 
@@ -33,6 +34,8 @@ EditorSceneViewRenderer::EditorSceneViewRenderer(
     _cube_id = editor_renderer.mesh_id("cube");
     _skybox_pipeline_id = editor_renderer.pipeline_id("skybox");
     _skybox_material_id = editor_renderer.material_id("skybox");
+    _gizmo_pipeline_id = editor_renderer.pipeline_id("gizmo");
+    _gizmo_material_id = editor_renderer.material_id("gizmo");
 
     // camera
     _camera = std::make_unique<editor::scene::EditorCamera>();
@@ -93,67 +96,22 @@ void EditorSceneViewRenderer::register_passes(
         [this](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
             ctx.command_buffer = ctx.target->begin_frame(*ctx.pipeline);
             ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
+
             ctx.pipeline->bind(ctx.command_buffer);
 
             engine::core::graphics::Material& material = _material_cache.get(_skybox_material_id);
             engine::core::graphics::MeshBuffer& mesh = _mesh_cache.get(_cube_id);
 
-            struct SkyboxUBO {
-                glm::mat4 view;
-                glm::mat4 proj;
-            } ubo;
-
+            UniformBufferObject ubo;
             ubo.view = glm::mat4(glm::mat3(_camera->view()));
             ubo.proj = _camera->projection();
             ubo.proj[1][1] *= -1.0f;
 
             material.update_uniform_buffer(&ubo);
+
             mesh.bind(ctx.command_buffer);
             material.bind(ctx.command_buffer);
             _view_target->submit_draws(mesh.index_count());
-        }
-    );
-
-    // selection outline pass
-    graph.add_pass(
-        &_pipeline_cache.get(_mesh_outline_pipeline_id),
-        _view_target.get(),
-        [this, &scene](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
-            ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
-            ctx.pipeline->bind(ctx.command_buffer);
-
-            for (auto [entity, transform, mesh_renderer] :
-                 scene.view<components::Transform, components::MeshRenderer>())
-            {
-                if (!mesh_renderer.visible) continue;
-                if (_selected_entity != entity) continue;
-
-                engine::core::graphics::MeshBuffer& mesh = _mesh_cache.get(mesh_renderer.mesh_id);
-                engine::core::graphics::Material& material = _material_cache.get(_mesh_outline_material_id);
-
-                UniformBufferObject ubo{};
-                ubo.model = transform.matrix();
-                ubo.view = _camera->view();
-                ubo.proj = _camera->projection();
-                ubo.proj[1][1] *= -1.0f;
-
-                material.update_uniform_buffer(&ubo);
-                mesh.bind(ctx.command_buffer);
-                material.bind(ctx.command_buffer);
-
-                struct {
-                    glm::vec4 color;
-                    float width;
-                    float falloff;
-                } pc{
-                    glm::vec4{1.0f, 1.0f, 1.0f, 1.0f},
-                    0.02f
-                };
-                _view_target->push_constants(ctx.command_buffer, ctx.pipeline->native_pipeline_layout(), &pc, sizeof(pc),
-                    engine::core::graphics::ShaderStageFlags::VERTEX);
-
-                _view_target->submit_draws(mesh.index_count());
-            }
         }
     );
 
@@ -163,6 +121,7 @@ void EditorSceneViewRenderer::register_passes(
         _view_target.get(),
         [this, &scene](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
             ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
+
             ctx.pipeline->bind(ctx.command_buffer);
 
             for (auto [entity, transform, mesh_renderer] :
@@ -173,18 +132,111 @@ void EditorSceneViewRenderer::register_passes(
                 engine::core::graphics::MeshBuffer& mesh = _mesh_cache.get(mesh_renderer.mesh_id);
                 engine::core::graphics::Material& material = _material_cache.get(mesh_renderer.material_id);
 
-                UniformBufferObject ubo{};
-                ubo.model = transform.matrix();
+                UniformBufferObject ubo;
                 ubo.view = _camera->view();
                 ubo.proj = _camera->projection();
                 ubo.proj[1][1] *= -1.0f;
 
+                PushConstants pc;
+                pc.model = transform.matrix();
+
                 material.update_uniform_buffer(&ubo);
+                _view_target->push_constants(ctx.command_buffer, ctx.pipeline->native_pipeline_layout(), &pc, sizeof(pc),
+                        engine::core::graphics::ShaderStageFlags::VERTEX);
+
                 mesh.bind(ctx.command_buffer);
                 material.bind(ctx.command_buffer);
                 _view_target->submit_draws(mesh.index_count());
             }
+        }
+    );
 
+    // selection outline pass
+    graph.add_pass(
+        &_pipeline_cache.get(_mesh_outline_pipeline_id),
+        _view_target.get(),
+        [this, &scene](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
+            ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
+
+            ctx.pipeline->bind(ctx.command_buffer);
+            
+            engine::core::graphics::Material& material = _material_cache.get(_mesh_outline_material_id);
+
+            for (auto [entity, transform, mesh_renderer] :
+                 scene.view<components::Transform, components::MeshRenderer>())
+            {
+                if (!mesh_renderer.visible) continue;
+                if (_selected_entity != entity) continue;
+
+                engine::core::graphics::MeshBuffer& mesh = _mesh_cache.get(mesh_renderer.mesh_id);
+
+                UniformBufferObject ubo;
+                ubo.view = _camera->view();
+                ubo.proj = _camera->projection();
+                ubo.proj[1][1] *= -1.0f;
+
+                struct {
+                    glm::mat4 model;
+                    glm::vec4 color;
+                    float width;
+                } pc{
+                    transform.matrix(),
+                    glm::vec4{1.0f, 1.0f, 1.0f, 1.0f},
+                    0.02f
+                };
+
+                material.update_uniform_buffer(&ubo);
+                _view_target->push_constants(ctx.command_buffer, ctx.pipeline->native_pipeline_layout(), &pc, sizeof(pc),
+                        engine::core::graphics::ShaderStageFlags::VERTEX);
+
+                mesh.bind(ctx.command_buffer);
+                material.bind(ctx.command_buffer);
+
+                _view_target->submit_draws(mesh.index_count());
+            }
+        }
+    );
+
+    // scene gizmo pass
+    graph.add_pass(
+        &_pipeline_cache.get(_gizmo_pipeline_id),
+        _view_target.get(),
+        [this, &scene](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
+            ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
+
+            ctx.pipeline->bind(ctx.command_buffer);
+
+            engine::core::graphics::Material& material = _material_cache.get(_gizmo_material_id);
+
+            for (auto [entity, transform, gizmo_renderer] :
+                 scene.view<components::Transform, components::GizmoRenderer>())
+            {
+                if (!gizmo_renderer.visible) continue;
+
+                engine::core::graphics::MeshBuffer& mesh = _mesh_cache.get(gizmo_renderer.mesh_id);
+
+                UniformBufferObject ubo;
+                ubo.view = _camera->view();
+                ubo.proj = _camera->projection();
+                ubo.proj[1][1] *= -1.0f;
+
+                struct {
+                    glm::mat4 model;
+                    glm::vec4 color;
+                } pc{
+                    transform.matrix(),
+                    glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)
+                };
+
+                material.update_uniform_buffer(&ubo);
+                _view_target->push_constants(ctx.command_buffer, ctx.pipeline->native_pipeline_layout(), &pc, sizeof(pc),
+                        engine::core::graphics::ShaderStageFlags::VERTEX | engine::core::graphics::ShaderStageFlags::FRAGMENT);
+
+                mesh.bind(ctx.command_buffer);
+                material.bind(ctx.command_buffer);
+                _view_target->submit_draws(mesh.index_count());
+            }
+            
             ctx.target->end_frame();
         }
     );
@@ -197,7 +249,10 @@ void EditorSceneViewRenderer::register_passes(
         [this, &scene, readback_index](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
             ctx.command_buffer = ctx.target->begin_frame(*ctx.pipeline);
             ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
+            
             ctx.pipeline->bind(ctx.command_buffer);
+            
+            engine::core::graphics::Material& material = _material_cache.get(_mesh_pick_material_id);
 
             for (auto [entity, transform, mesh_renderer] :
                 scene.view<components::Transform, components::MeshRenderer>())
@@ -205,24 +260,55 @@ void EditorSceneViewRenderer::register_passes(
                 if (!mesh_renderer.visible) continue;
 
                 engine::core::graphics::MeshBuffer& mesh = _mesh_cache.get(mesh_renderer.mesh_id);
-                engine::core::graphics::Material& material = _material_cache.get(_mesh_pick_material_id);
 
-                UniformBufferObject ubo{};
-                ubo.model = transform.matrix();
+                UniformBufferObject ubo;
                 ubo.view = _camera->view();
                 ubo.proj = _camera->projection();
                 ubo.proj[1][1] *= -1.0f;
 
-                material.update_uniform_buffer(&ubo);
-                mesh.bind(ctx.command_buffer);
-                material.bind(ctx.command_buffer);
-
-                struct { uint32_t entity_id; } pc{
+                struct {
+                    glm::mat4 model;
+                    uint32_t entity_id;
+                } pc{
+                    transform.matrix(),
                     static_cast<uint32_t>(entity & 0xFFFFFFFFu)
                 };
-                _pick_target->push_constants(ctx.command_buffer, ctx.pipeline->native_pipeline_layout(), &pc, sizeof(pc),
-                    engine::core::graphics::ShaderStageFlags::FRAGMENT);
 
+                material.update_uniform_buffer(&ubo);
+                _pick_target->push_constants(ctx.command_buffer, ctx.pipeline->native_pipeline_layout(), &pc, sizeof(pc),
+                        engine::core::graphics::ShaderStageFlags::VERTEX | engine::core::graphics::ShaderStageFlags::FRAGMENT);
+
+                mesh.bind(ctx.command_buffer);
+                material.bind(ctx.command_buffer);
+                _pick_target->submit_draws(mesh.index_count());
+            }
+
+            for (auto [entity, transform, gizmo_renderer] :
+                scene.view<components::Transform, components::GizmoRenderer>())
+            {
+                if (!gizmo_renderer.visible) continue;
+
+                engine::core::graphics::MeshBuffer& mesh = _mesh_cache.get(gizmo_renderer.mesh_id);
+
+                UniformBufferObject ubo;
+                ubo.view = _camera->view();
+                ubo.proj = _camera->projection();
+                ubo.proj[1][1] *= -1.0f;
+
+                struct {
+                    glm::mat4 model;
+                    uint32_t entity_id;
+                } pc{
+                    transform.matrix(),
+                    static_cast<uint32_t>(entity & 0xFFFFFFFFu)
+                };
+
+                material.update_uniform_buffer(&ubo);
+                _pick_target->push_constants(ctx.command_buffer, ctx.pipeline->native_pipeline_layout(), &pc, sizeof(pc),
+                        engine::core::graphics::ShaderStageFlags::VERTEX | engine::core::graphics::ShaderStageFlags::FRAGMENT);
+
+                mesh.bind(ctx.command_buffer);
+                material.bind(ctx.command_buffer);
                 _pick_target->submit_draws(mesh.index_count());
             }
 

@@ -4,6 +4,7 @@
 #include "engine/core/graphics/vertex_types.hpp"
 #include "engine/core/graphics/image_types.hpp"
 #include "engine/core/graphics/descriptor_types.hpp"
+#include "engine/core/graphics/pipeline.hpp"
 
 #include <wk/wulkan.hpp>
 
@@ -251,6 +252,17 @@ inline VkCullModeFlags ToVkCullMode(core::graphics::CullMode mode) {
         default:
             ENGINE_ASSERT(false, "Unsupported CullMode");
             return VK_CULL_MODE_NONE;
+    }
+}
+
+inline VkPolygonMode ToVkPolygonMode(core::graphics::PolygonMode mode) {
+    switch (mode) {
+        case core::graphics::PolygonMode::FILL:  return VK_POLYGON_MODE_FILL;
+        case core::graphics::PolygonMode::LINE:  return VK_POLYGON_MODE_LINE;
+        case core::graphics::PolygonMode::POINT: return VK_POLYGON_MODE_POINT;
+        default:
+            ENGINE_ASSERT(false, "Unsupported PolygonMode");
+            return VK_POLYGON_MODE_FILL;
     }
 }
 

@@ -1,5 +1,5 @@
-#ifndef editor_components_LIGHT_HPP
-#define editor_components_LIGHT_HPP
+#ifndef editor_components_LIGHTS_HPP
+#define editor_components_LIGHTS_HPP
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -22,10 +22,10 @@ class PointLight {
 class SpotLight {
     glm::vec3 color = glm::vec3(1.0f);
     float intensity = 1.0f;
-    float inner_cutoff = glm::radians(15.0f);
-    float outer_cutoff = glm::radians(25.0f);
+    float range = 10.0f;
+    float angle = glm::radians(15.0f);
 };
 
 }
 
-#endif
+#endif // editor_components_LIGHTS_HPP

@@ -170,7 +170,7 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
 
     VkPipelineRasterizationStateCreateInfo raster_ci =
         wk::PipelineRasterizationStateCreateInfo{}
-            .set_polygon_mode(VK_POLYGON_MODE_FILL)
+            .set_polygon_mode(ToVkPolygonMode(config.polygon_mode))
             .set_cull_mode(ToVkCullMode(config.cull_mode))
             .set_front_face(VK_FRONT_FACE_COUNTER_CLOCKWISE)
             .set_line_width(1.0f)

@@ -86,6 +86,8 @@ private:
     engine::core::renderer::cache::MeshCacheId _cube_id;
     engine::core::renderer::cache::PipelineCacheId _skybox_pipeline_id;
     engine::core::renderer::cache::MaterialCacheId _skybox_material_id;
+    engine::core::renderer::cache::PipelineCacheId _gizmo_pipeline_id;
+    engine::core::renderer::cache::MaterialCacheId _gizmo_material_id;
 };
 
 } // namespace editor::renderer

@@ -1,11 +1,12 @@
 #version 450
-layout(location = 0) out uint out_id;
+
+layout(location = 0) out vec4 out_color;
 
 layout(push_constant) uniform PushConstants {
     mat4 model;
-    uint entity_id;
+    vec4 color;
 } pc;
 
 void main() {
-    out_id = pc.entity_id;
+    out_color = pc.color;
 }

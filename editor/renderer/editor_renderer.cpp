@@ -41,19 +41,22 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
     import::ObjModel cube_model = import::ReadObj("res/cube.obj");
     _mesh_cache_entries["cube"] = _mesh_cache->register_mesh(cube_model);
 
-    // default shaders
+    // default shaders    
+    _shader_cache_entries["skybox_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/skybox.vert.spv");
+    _shader_cache_entries["skybox_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/skybox.frag.spv");
+
     _shader_cache_entries["mesh_normal_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/mesh_normal.vert.spv");
     _shader_cache_entries["mesh_normal_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/mesh_normal.frag.spv");
-   
-    _shader_cache_entries["mesh_pick_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/mesh_pick.vert.spv");
-    _shader_cache_entries["mesh_pick_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/mesh_pick.frag.spv");
     
     _shader_cache_entries["mesh_outline_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/mesh_outline.vert.spv");
     _shader_cache_entries["mesh_outline_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/mesh_outline.frag.spv");
 
-    _shader_cache_entries["skybox_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/skybox.vert.spv");
-    _shader_cache_entries["skybox_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/skybox.frag.spv");
-    
+    _shader_cache_entries["gizmo_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/gizmo.vert.spv");
+    _shader_cache_entries["gizmo_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/gizmo.frag.spv");
+   
+    _shader_cache_entries["mesh_pick_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/mesh_pick.vert.spv");
+    _shader_cache_entries["mesh_pick_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/mesh_pick.frag.spv");
+
     _shader_cache_entries["editor_present_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/editor_present.vert.spv");
     _shader_cache_entries["editor_present_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/editor_present.frag.spv");
 
@@ -116,6 +119,20 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
                 .set_visibility(engine::core::graphics::ShaderStageFlags::FRAGMENT));
 
     // default pipelines
+    _pipeline_cache_entries["skybox"] =
+        _pipeline_cache->register_pipeline(
+            _shader_cache->get(shader_id("skybox_vert")),
+            _shader_cache->get(shader_id("skybox_frag")),
+            _material_cache->get_or_create_layout(vertex_ubo_layout),
+            position_binding,
+            color_attachment,
+            engine::core::graphics::PipelineConfig{}
+                .set_depth_test(true)
+                .set_depth_write(false)
+                .set_blending(false)
+                .set_cull_mode(engine::core::graphics::CullMode::FRONT)
+        );
+
     _pipeline_cache_entries["mesh_normal"] =
         _pipeline_cache->register_pipeline(
             _shader_cache->get(_shader_cache_entries["mesh_normal_vert"]),
@@ -124,23 +141,11 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
             position_normal_binding,
             color_attachment,
             engine::core::graphics::PipelineConfig{}
+                .set_depth_test(true)
+                .set_depth_write(true)
                 .set_blending(true)
-                .set_depth_test(true)
-                .set_depth_write(true)
-        );
-
-    _pipeline_cache_entries["mesh_pick"] =
-        _pipeline_cache->register_pipeline(
-            _shader_cache->get(shader_id("mesh_pick_vert")),
-            _shader_cache->get(shader_id("mesh_pick_frag")),
-            _material_cache->get_or_create_layout(vertex_ubo_layout),
-            position_binding,
-            pick_attachments,
-            engine::core::graphics::PipelineConfig{}
-                .set_depth_test(true)
-                .set_depth_write(true)
-                .set_blending(false)
-                .set_push_constant(sizeof(uint32_t), engine::core::graphics::ShaderStageFlags::FRAGMENT)
+                .set_cull_mode(engine::core::graphics::CullMode::BACK)
+                .set_push_constant(sizeof(PushConstants), engine::core::graphics::ShaderStageFlags::VERTEX)
         );
     
     _pipeline_cache_entries["mesh_outline"] =
@@ -154,22 +159,40 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
                 .set_depth_test(true)
                 .set_depth_write(false)
                 .set_blending(true)
-                .set_push_constant(32, engine::core::graphics::ShaderStageFlags::VERTEX)
                 .set_cull_mode(engine::core::graphics::CullMode::FRONT)
+                .set_push_constant(128, engine::core::graphics::ShaderStageFlags::VERTEX)
         );
     
-    _pipeline_cache_entries["skybox"] =
+    _pipeline_cache_entries["gizmo"] =
         _pipeline_cache->register_pipeline(
-            _shader_cache->get(shader_id("skybox_vert")),
-            _shader_cache->get(shader_id("skybox_frag")),
+            _shader_cache->get(shader_id("gizmo_vert")),
+            _shader_cache->get(shader_id("gizmo_frag")),
             _material_cache->get_or_create_layout(vertex_ubo_layout),
             position_binding,
             color_attachment,
             engine::core::graphics::PipelineConfig{}
                 .set_depth_test(true)
                 .set_depth_write(false)
-                .set_blending(false)
-                .set_cull_mode(engine::core::graphics::CullMode::FRONT)
+                .set_blending(true)
+                .set_cull_mode(engine::core::graphics::CullMode::NONE)
+                .set_polygon_mode(engine::core::graphics::PolygonMode::LINE)
+                .set_push_constant(128, engine::core::graphics::ShaderStageFlags::VERTEX
+                        | engine::core::graphics::ShaderStageFlags::FRAGMENT)
+        );
+
+    _pipeline_cache_entries["mesh_pick"] =
+        _pipeline_cache->register_pipeline(
+            _shader_cache->get(shader_id("mesh_pick_vert")),
+            _shader_cache->get(shader_id("mesh_pick_frag")),
+            _material_cache->get_or_create_layout(vertex_ubo_layout),
+            position_binding,
+            pick_attachments,
+            engine::core::graphics::PipelineConfig{}
+                .set_depth_test(true)
+                .set_depth_write(true)
+                .set_blending(true)
+                .set_push_constant(128, engine::core::graphics::ShaderStageFlags::VERTEX
+                        | engine::core::graphics::ShaderStageFlags::FRAGMENT)
         );
 
     _pipeline_cache_entries["editor_present"] =
@@ -186,16 +209,16 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
         );
 
     // default materials
-    _material_cache_entries["mesh_normal"] =
+    _material_cache_entries["skybox"] =
         _material_cache->register_material(
-            _pipeline_cache->get(pipeline_id("mesh_normal")),
+            _pipeline_cache->get(pipeline_id("skybox")),
             vertex_ubo_layout,
             sizeof(UniformBufferObject)
         );
 
-    _material_cache_entries["mesh_pick"] =
+    _material_cache_entries["mesh_normal"] =
         _material_cache->register_material(
-            _pipeline_cache->get(pipeline_id("mesh_pick")),
+            _pipeline_cache->get(pipeline_id("mesh_normal")),
             vertex_ubo_layout,
             sizeof(UniformBufferObject)
         );
@@ -207,11 +230,18 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
             sizeof(UniformBufferObject)
         );
     
-    _material_cache_entries["skybox"] =
+    _material_cache_entries["gizmo"] =
         _material_cache->register_material(
-            _pipeline_cache->get(pipeline_id("skybox")),
+            _pipeline_cache->get(pipeline_id("gizmo")),
             vertex_ubo_layout,
-            sizeof(glm::mat4) * 2
+            sizeof(UniformBufferObject)
+        );
+
+    _material_cache_entries["mesh_pick"] =
+        _material_cache->register_material(
+            _pipeline_cache->get(pipeline_id("mesh_pick")),
+            vertex_ubo_layout,
+            sizeof(UniformBufferObject)
         );
     
     _material_cache_entries["editor_present"] =

@@ -34,9 +34,12 @@
 namespace editor::renderer {
 
 struct UniformBufferObject {
-    glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
+};
+
+struct PushConstants {
+    glm::mat4 model;
 };
 
 class EditorRenderer final : public engine::core::renderer::Renderer {
