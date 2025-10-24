@@ -96,11 +96,11 @@ add_executable(editor
 
     editor/gui/editor_gui.hpp  editor/gui/editor_gui.cpp
     editor/gui/panels/panel.hpp
-    editor/gui/panels/scene_view_panel.hpp  editor/gui/panels/scene_view_panel.cpp
-    editor/gui/panels/inspector_panel.hpp   editor/gui/panels/inspector_panel.cpp
-    editor/gui/panels/console_panel.hpp     editor/gui/panels/console_panel.cpp
+    editor/gui/panels/viewport_panel.hpp   editor/gui/panels/viewport_panel.cpp
+    editor/gui/panels/inspector_panel.hpp  editor/gui/panels/inspector_panel.cpp
+    editor/gui/panels/console_panel.hpp    editor/gui/panels/console_panel.cpp
 
-    editor/renderer/editor_renderer.hpp             editor/renderer/editor_renderer.cpp
+    editor/renderer/editor_renderer.hpp  editor/renderer/editor_renderer.cpp
     # editor/renderer/editor_scene_view_renderer.hpp  editor/renderer/editor_scene_view_renderer.cpp
 )
 

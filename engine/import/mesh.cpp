@@ -1,6 +1,6 @@
 #include "mesh.hpp"
 
-namespace import {
+namespace engine::import {
 
 ObjModel ReadObj(const std::string& filepath) {
     tinyobj::ObjReaderConfig config;
@@ -64,4 +64,4 @@ ObjModel ReadObj(const std::string& filepath) {
     return model;
 }
 
-}
+} // namespace engine::import

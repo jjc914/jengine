@@ -7,7 +7,6 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
 
 layout(push_constant) uniform PushConstants {
     mat4 model;
-    vec4 color;
 } pc;
 
 layout(location = 0) in vec3 in_position;

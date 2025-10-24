@@ -15,6 +15,7 @@
 #include "engine/core/scene/scene.hpp"
 
 #include "editor/scene/editor_camera.hpp"
+#include "editor/renderer/editor_renderer.hpp"
 
 #include <wk/wulkan.hpp>
 
@@ -27,12 +28,11 @@ namespace editor::gui {
 struct GuiContext {
     engine::core::graphics::CommandBuffer* command_buffer;
 
-    struct SceneView {
+    struct {
         ImTextureID texture_id;
+
+        renderer::SceneState scene_state;
         scene::EditorCamera* camera = nullptr;
-        
-        engine::core::scene::Scene* scene = nullptr;
-        std::optional<engine::core::scene::Entity> selected_entity;
 
         ImVec2 out_size{0, 0};
         ImVec2 out_pos{0, 0};

@@ -2,7 +2,7 @@
 
 #include "engine/core/graphics/device.hpp"
 
-#include "panels/scene_view_panel.hpp"
+#include "panels/viewport_panel.hpp"
 #include "panels/inspector_panel.hpp"
 #include "panels/console_panel.hpp"
 
@@ -144,7 +144,7 @@ void EditorGui::on_gui(GuiContext& context) {
         ImGuiID dock_right_id  = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.25f, nullptr, &dock_main_id);
         ImGuiID dock_bottom_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down,  0.25f, nullptr, &dock_main_id);
 
-        ImGui::DockBuilderDockWindow("Scene View", dock_main_id);
+        ImGui::DockBuilderDockWindow("Viewport", dock_main_id);
         ImGui::DockBuilderDockWindow("Inspector", dock_right_id);
         ImGui::DockBuilderDockWindow("Console", dock_bottom_id);
 

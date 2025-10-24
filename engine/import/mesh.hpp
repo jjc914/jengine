@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace import {
+namespace engine::import {
 
 struct ObjVertex {
     glm::vec3 position{};

@@ -1,5 +1,5 @@
-#ifndef editor_gui_panels_SCENE_VIEW_PANEL_HPP
-#define editor_gui_panels_SCENE_VIEW_PANEL_HPP
+#ifndef editor_gui_panels_VIEWPORT_PANEL_HPP
+#define editor_gui_panels_VIEWPORT_PANEL_HPP
 
 #include "panel.hpp"
 
@@ -7,9 +7,9 @@
 
 namespace editor::gui::panels {
 
-class SceneViewPanel final : public Panel {
+class ViewportPanel final : public Panel {
 public:
-    SceneViewPanel() : Panel("Scene View") {}
+    ViewportPanel() : Panel("Viewport") {}
 
     void on_gui_focus(GuiContext& context) override;
     void on_gui_hover(GuiContext& context) override;
@@ -23,4 +23,4 @@ private:
 
 } // namespace editor::gui::panels
 
-#endif // editor_gui_panels_SCENE_VIEW_PANEL_HPP
+#endif // editor_gui_panels_VIEWPORT_PANEL_HPP

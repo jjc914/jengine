@@ -301,73 +301,58 @@ void FrameGraph::execute() {
         RenderPass& pass = _render_passes[pass_index];
         RenderPassInstance& pass_instance = _render_pass_instances[pass_index];
 
-        // transition reads to sampling layout
         for (const AttachmentId& id : pass.reads_color()) {
             AttachmentInstance& instance = _attachment_instances[id.id];
-
             core::graphics::TextureBarrier barrier;
             barrier.old_layout = instance.texture->layout();
             barrier.new_layout = core::graphics::TextureLayout::SAMPLE;
             barrier.usage_before = core::graphics::TextureUsage::UNDEFINED;
             barrier.usage_after = core::graphics::TextureUsage::SAMPLED_IMAGE;
-
             instance.texture->transition(barrier);
         }
 
         if (pass.read_depth()) {
             AttachmentInstance& instance = _attachment_instances[pass.read_depth()->id];
-
             core::graphics::TextureBarrier barrier;
             barrier.old_layout = instance.texture->layout();
             barrier.new_layout = core::graphics::TextureLayout::SAMPLE;
             barrier.usage_before = core::graphics::TextureUsage::UNDEFINED;
             barrier.usage_after = core::graphics::TextureUsage::SAMPLED_IMAGE;
-
             instance.texture->transition(barrier);
         }
 
-        // transition writes to color/depth
-        for (const AttachmentId& id : pass.writes_color()) {
-            AttachmentInstance& instance = _attachment_instances[id.id];
+        if (!pass.has_render_target_override()) {
+            for (const AttachmentId& id : pass.writes_color()) {
+                AttachmentInstance& instance = _attachment_instances[id.id];
+                core::graphics::TextureBarrier barrier;
+                barrier.old_layout = instance.texture->layout();
+                barrier.new_layout = core::graphics::TextureLayout::COLOR;
+                barrier.usage_before = core::graphics::TextureUsage::UNDEFINED;
+                barrier.usage_after = core::graphics::TextureUsage::COLOR_ATTACHMENT;
+                instance.texture->transition(barrier);
+            }
 
-            core::graphics::TextureBarrier barrier;
-            barrier.old_layout = instance.texture->layout();
-            barrier.new_layout = core::graphics::TextureLayout::COLOR;
-            barrier.usage_before = core::graphics::TextureUsage::UNDEFINED;
-            barrier.usage_after = core::graphics::TextureUsage::COLOR_ATTACHMENT;
-
-            instance.texture->transition(barrier);
+            if (pass.write_depth()) {
+                AttachmentInstance& instance = _attachment_instances[pass.write_depth()->id];
+                core::graphics::TextureBarrier barrier;
+                barrier.old_layout = instance.texture->layout();
+                barrier.new_layout = core::graphics::TextureLayout::DEPTH;
+                barrier.usage_before = core::graphics::TextureUsage::UNDEFINED;
+                barrier.usage_after = core::graphics::TextureUsage::DEPTH_ATTACHMENT;
+                instance.texture->transition(barrier);
+            }
         }
 
-        if (pass.write_depth()) {
-            AttachmentInstance& instance = _attachment_instances[pass.write_depth()->id];
-
-            core::graphics::TextureBarrier barrier;
-            barrier.old_layout = instance.texture->layout();
-            barrier.new_layout = core::graphics::TextureLayout::DEPTH;
-            barrier.usage_before = core::graphics::TextureUsage::UNDEFINED;
-            barrier.usage_after = core::graphics::TextureUsage::DEPTH_ATTACHMENT;
-
-            instance.texture->transition(barrier);
-        }
-        
-        // build render pass context (frame-specific for now)
         RenderPassContext context;
-        
-        // begin frame
-        glm::vec4 clear_color = pass.clear_color().value_or(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-        glm::vec2 clear_depth = pass.clear_depth().value_or(glm::vec2(0, 1));
-        context.command_buffer = pass_instance.render_target->begin_frame(
-            *pass_instance.pipeline,
-            clear_color,
-            clear_depth
-        );
         context.pipeline = pass_instance.pipeline;
+        glm::vec4 clear_color = pass.clear_color().value_or(glm::vec4(0, 0, 0, 1));
+        glm::vec2 clear_depth = pass.clear_depth().value_or(glm::vec2(0, 1));
 
-        // execute render pass
+        context.command_buffer = pass_instance.render_target->begin_frame(
+            *context.pipeline, clear_color, clear_depth
+        );
+
         pass.execute(context);
-
-        // end frame
         pass_instance.render_target->end_frame();
     }
 }

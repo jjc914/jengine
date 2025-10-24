@@ -1,4 +1,4 @@
-#include "scene_view_panel.hpp"
+#include "viewport_panel.hpp"
 
 #include "editor/gui/editor_gui.hpp"
 
@@ -6,7 +6,7 @@
 
 namespace editor::gui::panels {
 
-void SceneViewPanel::on_gui(GuiContext& context) {
+void ViewportPanel::on_gui(GuiContext& context) {
     // scene view image
     ImTextureID tex = context.scene_view.texture_id;
     if (!tex) {
@@ -64,7 +64,7 @@ void SceneViewPanel::on_gui(GuiContext& context) {
     ImGui::End();
 }
 
-void SceneViewPanel::on_gui_focus(GuiContext& context) {
+void ViewportPanel::on_gui_focus(GuiContext& context) {
     ENGINE_ASSERT(context.scene_view.camera, "SceneViewPanel requires a valid EditorCamera");
     ImGuiIO& io = ImGui::GetIO();
 
@@ -76,7 +76,7 @@ void SceneViewPanel::on_gui_focus(GuiContext& context) {
     context.scene_view.camera->update_input(io.DeltaTime, middle, right, delta, scroll);
 }
 
-void SceneViewPanel::on_gui_hover(GuiContext& context) {
+void ViewportPanel::on_gui_hover(GuiContext& context) {
 }
 
 }

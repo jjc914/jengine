@@ -45,45 +45,38 @@ int App::run() {
     // editor renderer
     _renderer = std::make_unique<renderer::EditorRenderer>(*_window);
 
+    // default rendering resources
+    std::unordered_map<std::string, engine::core::renderer::cache::MeshCacheId> default_meshes = _renderer->register_default_meshes();
+    std::unordered_map<std::string, engine::core::renderer::cache::MaterialCacheId> default_materials = _renderer->register_default_materials();
+
     // create scene // TODO: move to a helper function
     _default_scene = std::move(engine::core::scene::Scene());
 
-    // // default entity
-    // engine::core::scene::Entity default_entity = _default_scene.create_entity();
-    // _default_scene.add_component<components::Transform>(default_entity,
-    //     glm::vec3(0.0f, 0.0f, 0.0f),
-    //     glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
-    //     glm::vec3(1.0f, 1.0f, 1.0f)
-    // );
-    // _default_scene.add_component<components::MeshRenderer>(default_entity,
-    //     _renderer->mesh_id("sphere"),
-    //     _renderer->material_id("mesh_normal")
-    // );
+    // default entity
+    engine::core::scene::Entity default_entity = _default_scene.create_entity();
+    _default_scene.add_component<components::Transform>(default_entity,
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
+        glm::vec3(1.0f, 1.0f, 1.0f)
+    );
+    _default_scene.add_component<components::MeshRenderer>(default_entity,
+        _renderer->mesh_id("sphere"),
+        _renderer->material_id("unlit")
+    );
 
-    // engine::core::scene::Entity default_entity_2 = _default_scene.create_entity();
-    // _default_scene.add_component<components::Transform>(default_entity_2,
-    //     glm::vec3(-2.0f, 0.0f, 0.0f),
-    //     glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
-    //     glm::vec3(1.0f, 1.0f, 1.0f)
-    // );
-    // _default_scene.add_component<components::MeshRenderer>(default_entity_2,
-    //     _renderer->mesh_id("cube"),
-    //     _renderer->material_id("mesh_normal")
-    // );
+    engine::core::scene::Entity default_entity_2 = _default_scene.create_entity();
+    _default_scene.add_component<components::Transform>(default_entity_2,
+        glm::vec3(-2.0f, 0.0f, 0.0f),
+        glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
+        glm::vec3(1.0f, 1.0f, 1.0f)
+    );
+    _default_scene.add_component<components::MeshRenderer>(default_entity_2,
+        _renderer->mesh_id("cube"),
+        _renderer->material_id("unlit")
+    );
 
-    // // default lights
-    // engine::core::scene::Entity default_light = _default_scene.create_entity();
-    // _default_scene.add_component<components::Transform>(default_light,
-    //     glm::vec3(5.0f, 0.0f, 0.0f),
-    //     glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
-    //     glm::vec3(0.1f, 0.1f, 0.1f)
-    // );
-    // _default_scene.add_component<components::DirectionalLight>(default_light);
-    // _default_scene.add_component<components::PointLight>(default_light);
-    // _default_scene.add_component<components::GizmoRenderer>(default_light,
-    //     _renderer->mesh_id("cube"),
-    //     _renderer->material_id("gizmo")
-    // );
+    // set scene
+    _renderer->set_scene(&_default_scene);
 
     // main loop
     auto last_time = std::chrono::high_resolution_clock::now();
@@ -117,7 +110,7 @@ int App::run() {
             continue;
         }
         
-        _renderer->render_scene(_default_scene);
+        _renderer->render();
     }
     return 0;
 }

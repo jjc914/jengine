@@ -9,17 +9,17 @@
 namespace editor::gui::panels {
 
 void InspectorPanel::on_gui(GuiContext& context) {
-    if (!context.scene_view.selected_entity) {
+    if (!context.scene_view.scene_state.selected_entity) {
         ImGui::TextDisabled("No Entity selected");
         return;
     }
 
-    ENGINE_ASSERT(context.scene_view.scene, "InspectorPanel requires a valid reference to a Scene");
+    ENGINE_ASSERT(context.scene_view.scene_state.scene, "InspectorPanel requires a valid reference to a Scene");
 
-    engine::core::scene::Entity entity = *context.scene_view.selected_entity;
+    engine::core::scene::Entity entity = *context.scene_view.scene_state.selected_entity;
     ImGui::Text("Entity %llu", (uint64_t)entity);
 
-    context.scene_view.scene->for_each_component(entity, [&](std::type_index type, void* ptr) {
+    context.scene_view.scene_state.scene->for_each_component(entity, [&](std::type_index type, void* ptr) {
         if (type == typeid(components::Transform)) {
             auto& t = *reinterpret_cast<components::Transform*>(ptr);
             ImGui::SeparatorText("Transform");
