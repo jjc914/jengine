@@ -14,6 +14,13 @@ namespace engine::drivers::vulkan {
 class VulkanInstance final : public core::graphics::Instance {
 public:
     VulkanInstance();
+
+    VulkanInstance(VulkanInstance&& other) = default;
+    VulkanInstance& operator=(VulkanInstance&& other) = default;
+
+    VulkanInstance(const VulkanInstance&) = delete;
+    VulkanInstance& operator=(const VulkanInstance&) = delete;
+
     ~VulkanInstance() override = default;
 
     std::unique_ptr<core::graphics::Device> create_device() const override { return nullptr; } // TODO: implement this

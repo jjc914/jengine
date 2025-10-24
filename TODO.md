@@ -19,14 +19,11 @@
 
 ## engine
 - [x] texture render targets for off-screen rendering
+- [x] 
 
 ## editor
-- [ ] create `editor/gui/panels/**.hpp/cpp` for editor panels (inspector, viewport, console, etc.)
-- [ ] move `./res` folder to `./editor/red`
-- [ ] add simple editor color selection
+- [ ] add simple editor theme selection
 - [ ] add editor grid background
-- [ ] add editor gizmos
-- [ ] add editor inspector
 
 # physics
 - [ ] create physics library

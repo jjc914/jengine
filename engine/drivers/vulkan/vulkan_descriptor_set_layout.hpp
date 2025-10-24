@@ -13,7 +13,15 @@ class VulkanDevice;
 class VulkanDescriptorSetLayout final : public engine::core::graphics::DescriptorSetLayout {
 public:
     VulkanDescriptorSetLayout(const VulkanDevice& device,
-                              const engine::core::graphics::DescriptorLayoutDescription& description);
+        const engine::core::graphics::DescriptorLayoutDescription& description
+    );
+
+    VulkanDescriptorSetLayout(VulkanDescriptorSetLayout&& other) = default;
+    VulkanDescriptorSetLayout& operator=(VulkanDescriptorSetLayout&& other) = default;
+
+    VulkanDescriptorSetLayout(const VulkanDescriptorSetLayout&) = delete;
+    VulkanDescriptorSetLayout& operator=(const VulkanDescriptorSetLayout&) = delete;
+
     ~VulkanDescriptorSetLayout() override = default;
 
     void* native_descriptor_set_layout() const override { return static_cast<void*>(_layout.handle()); }

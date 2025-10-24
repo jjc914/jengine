@@ -5,7 +5,7 @@ namespace engine::core::renderer {
 
 class Renderer {
 public:
-private:
+    virtual ~Renderer() = default;
 };
 
 } // namespace engine::core::renderer

@@ -1,38 +1,37 @@
 #include "editor_renderer.hpp"
-#include "editor_scene_view_renderer.hpp"
 
 #include "engine/drivers/vulkan/vulkan_instance.hpp"
 #include "engine/import/mesh.hpp"
 
-#include "engine/core/debug/logger.hpp"
-#include "editor/components/transform.hpp"
-#include "editor/components/mesh_renderer.hpp"
-#include "editor/scene/editor_camera.hpp"
+#include "engine/core/renderer/frame_graph/render_pass.hpp"
+#include "engine/core/renderer/frame_graph/attachment.hpp"
 
-#include <imgui.h>
-#include <backends/imgui_impl_glfw.h>
-#include <glm/gtx/transform.hpp>
+#include "engine/core/debug/logger.hpp"
+#include "engine/core/debug/assert.hpp"
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+using namespace engine::core;
+using namespace engine::core::graphics;
+using namespace engine::core::renderer;
+using namespace engine::core::renderer::framegraph;
 
 namespace editor::renderer {
 
-EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) {
+EditorRenderer::EditorRenderer(const window::Window& main_window) {
     _width = main_window.width();
     _height = main_window.height();
 
-    // driver setup
+    // create core graphics objects
     _instance = std::make_unique<engine::drivers::vulkan::VulkanInstance>();
     _device = _instance->create_device(main_window);
 
-    // caches
+    // create caches
     _mesh_cache = std::make_unique<engine::core::renderer::cache::MeshCache>(*_device);
     _shader_cache = std::make_unique<engine::core::renderer::cache::ShaderCache>(*_device);
     _material_cache = std::make_unique<engine::core::renderer::cache::MaterialCache>(*_device);
     _pipeline_cache = std::make_unique<engine::core::renderer::cache::PipelineCache>(*_device);
-
-    _mesh_cache_entries.clear();
-    _shader_cache_entries.clear();
-    _material_cache_entries.clear();
-    _pipeline_cache_entries.clear();
 
     // default meshes
     import::ObjModel sphere_model = import::ReadObj("res/sphere.obj");
@@ -41,279 +40,124 @@ EditorRenderer::EditorRenderer(const engine::core::window::Window& main_window) 
     import::ObjModel cube_model = import::ReadObj("res/cube.obj");
     _mesh_cache_entries["cube"] = _mesh_cache->register_mesh(cube_model);
 
-    // default shaders    
-    _shader_cache_entries["skybox_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/skybox.vert.spv");
-    _shader_cache_entries["skybox_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/skybox.frag.spv");
+    // register shaders
+    engine::core::renderer::cache::ShaderCacheId imgui_vid = _shader_cache->register_shader(
+        ShaderStageFlags::VERTEX,
+        "shaders/imgui.vert.spv"
+    );
+    engine::core::renderer::cache::ShaderCacheId imgui_fid = _shader_cache->register_shader(
+        ShaderStageFlags::FRAGMENT,
+        "shaders/imgui.frag.spv"
+    );
 
-    _shader_cache_entries["mesh_normal_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/mesh_normal.vert.spv");
-    _shader_cache_entries["mesh_normal_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/mesh_normal.frag.spv");
+    // create gui pipeline
+    std::vector<engine::core::graphics::ImageAttachmentInfo> swapchain_attachments = {
+        { _device->present_format(), engine::core::graphics::TextureUsage::PRESENT_SRC }
+    };
+
+    VertexBindingDescription imgui_binding =
+        VertexBindingDescription{}
+            .set_binding(0)
+            .set_stride(sizeof(ImDrawVert))
+            .set_attributes({
+                VertexAttribute{}.set_location(0).set_format(VertexFormat::FLOAT_2).set_offset(offsetof(ImDrawVert, pos)),
+                VertexAttribute{}.set_location(1).set_format(VertexFormat::FLOAT_2).set_offset(offsetof(ImDrawVert, uv)),
+                VertexAttribute{}.set_location(2).set_format(VertexFormat::UNORM8_4).set_offset(offsetof(ImDrawVert, col))
+            });
+
+    engine::core::graphics::PipelineConfig imgui_config = PipelineConfig{}
+        .set_depth_test(false)
+        .set_depth_write(false)
+        .set_blending(true)
+        .set_cull_mode(CullMode::NONE)
+        .set_push_constant(sizeof(glm::mat4), ShaderStageFlags::VERTEX);
     
-    _shader_cache_entries["mesh_outline_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/mesh_outline.vert.spv");
-    _shader_cache_entries["mesh_outline_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/mesh_outline.frag.spv");
-
-    _shader_cache_entries["gizmo_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/gizmo.vert.spv");
-    _shader_cache_entries["gizmo_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/gizmo.frag.spv");
-   
-    _shader_cache_entries["mesh_pick_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/mesh_pick.vert.spv");
-    _shader_cache_entries["mesh_pick_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/mesh_pick.frag.spv");
-
-    _shader_cache_entries["editor_present_vert"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::VERTEX, "shaders/editor_present.vert.spv");
-    _shader_cache_entries["editor_present_frag"] = _shader_cache->register_shader(engine::core::graphics::ShaderStageFlags::FRAGMENT, "shaders/editor_present.frag.spv");
-
-    // vertex bindings
-    engine::core::graphics::VertexBinding position_normal_binding =
-        engine::core::graphics::VertexBinding{}
-            .set_binding(0)
-            .set_stride(sizeof(import::ObjVertex))
-            .set_attributes({
-                engine::core::graphics::VertexAttribute{}
-                    .set_location(0)
-                    .set_format(engine::core::graphics::VertexFormat::FLOAT3)
-                    .set_offset(offsetof(import::ObjVertex, import::ObjVertex::position)),
-                engine::core::graphics::VertexAttribute{}
-                    .set_location(1)
-                    .set_format(engine::core::graphics::VertexFormat::FLOAT3)
-                    .set_offset(offsetof(import::ObjVertex, import::ObjVertex::normal))
-            });
-
-    engine::core::graphics::VertexBinding position_binding =
-        engine::core::graphics::VertexBinding{}
-            .set_binding(0)
-            .set_stride(sizeof(import::ObjVertex))
-            .set_attributes({
-                engine::core::graphics::VertexAttribute{}
-                    .set_location(0)
-                    .set_format(engine::core::graphics::VertexFormat::FLOAT3)
-                    .set_offset(offsetof(import::ObjVertex, import::ObjVertex::position))
-            });
-
-    // attachment formats
-    std::vector<engine::core::graphics::ImageAttachmentInfo> color_attachment = {
-        { engine::core::graphics::ImageFormat::RGBA8_UNORM, engine::core::graphics::ImageUsage::COLOR | engine::core::graphics::ImageUsage::SAMPLING },
-        { engine::core::graphics::ImageFormat::D32_FLOAT, engine::core::graphics::ImageUsage::DEPTH },
-    };
-
-    std::vector<engine::core::graphics::ImageAttachmentInfo> pick_attachments = {
-        { engine::core::graphics::ImageFormat::R32_UINT, engine::core::graphics::ImageUsage::COLOR | engine::core::graphics::ImageUsage::COPY_SRC },
-        { engine::core::graphics::ImageFormat::D32_FLOAT, engine::core::graphics::ImageUsage::DEPTH }
-    };
-
-    std::vector<engine::core::graphics::ImageAttachmentInfo> present_attachments = {
-        { _device->present_format(), engine::core::graphics::ImageUsage::PRESENT },
-        { _device->depth_format(),   engine::core::graphics::ImageUsage::DEPTH }
-    };
-
-    // descriptor layouts
-    engine::core::graphics::DescriptorLayoutDescription vertex_ubo_layout =
-        engine::core::graphics::DescriptorLayoutDescription{}
-            .add_binding(engine::core::graphics::DescriptorLayoutBinding{}
-                .set_binding(0)
-                .set_type(engine::core::graphics::DescriptorType::UNIFORM_BUFFER)
-                .set_visibility(engine::core::graphics::ShaderStageFlags::VERTEX));
-
-    engine::core::graphics::DescriptorLayoutDescription frag_sampler_layout =
+    _imgui_layout = _device->create_descriptor_set_layout(
         engine::core::graphics::DescriptorLayoutDescription{}
             .add_binding(engine::core::graphics::DescriptorLayoutBinding{}
                 .set_binding(0)
                 .set_type(engine::core::graphics::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                .set_visibility(engine::core::graphics::ShaderStageFlags::FRAGMENT));
+                .set_visibility(engine::core::graphics::ShaderStageFlags::FRAGMENT))
+    );
 
-    // default pipelines
-    _pipeline_cache_entries["skybox"] =
-        _pipeline_cache->register_pipeline(
-            _shader_cache->get(shader_id("skybox_vert")),
-            _shader_cache->get(shader_id("skybox_frag")),
-            _material_cache->get_or_create_layout(vertex_ubo_layout),
-            position_binding,
-            color_attachment,
-            engine::core::graphics::PipelineConfig{}
-                .set_depth_test(true)
-                .set_depth_write(false)
-                .set_blending(false)
-                .set_cull_mode(engine::core::graphics::CullMode::FRONT)
-        );
+    _imgui_pipeline_id = _pipeline_cache->register_pipeline(
+        *_shader_cache->get(imgui_vid),
+        *_shader_cache->get(imgui_fid),
+        *_imgui_layout,
+        imgui_binding,
+        swapchain_attachments,
+        imgui_config
+    );
 
-    _pipeline_cache_entries["mesh_normal"] =
-        _pipeline_cache->register_pipeline(
-            _shader_cache->get(_shader_cache_entries["mesh_normal_vert"]),
-            _shader_cache->get(_shader_cache_entries["mesh_normal_frag"]),
-            _material_cache->get_or_create_layout(vertex_ubo_layout),
-            position_normal_binding,
-            color_attachment,
-            engine::core::graphics::PipelineConfig{}
-                .set_depth_test(true)
-                .set_depth_write(true)
-                .set_blending(true)
-                .set_cull_mode(engine::core::graphics::CullMode::BACK)
-                .set_push_constant(sizeof(PushConstants), engine::core::graphics::ShaderStageFlags::VERTEX)
-        );
-    
-    _pipeline_cache_entries["mesh_outline"] =
-        _pipeline_cache->register_pipeline(
-            _shader_cache->get(shader_id("mesh_outline_vert")),
-            _shader_cache->get(shader_id("mesh_outline_frag")),
-            _material_cache->get_or_create_layout(vertex_ubo_layout),
-            position_normal_binding,
-            color_attachment,
-            engine::core::graphics::PipelineConfig{}
-                .set_depth_test(true)
-                .set_depth_write(false)
-                .set_blending(true)
-                .set_cull_mode(engine::core::graphics::CullMode::FRONT)
-                .set_push_constant(128, engine::core::graphics::ShaderStageFlags::VERTEX)
-        );
-    
-    _pipeline_cache_entries["gizmo"] =
-        _pipeline_cache->register_pipeline(
-            _shader_cache->get(shader_id("gizmo_vert")),
-            _shader_cache->get(shader_id("gizmo_frag")),
-            _material_cache->get_or_create_layout(vertex_ubo_layout),
-            position_binding,
-            color_attachment,
-            engine::core::graphics::PipelineConfig{}
-                .set_depth_test(true)
-                .set_depth_write(false)
-                .set_blending(true)
-                .set_cull_mode(engine::core::graphics::CullMode::NONE)
-                .set_polygon_mode(engine::core::graphics::PolygonMode::LINE)
-                .set_push_constant(128, engine::core::graphics::ShaderStageFlags::VERTEX
-                        | engine::core::graphics::ShaderStageFlags::FRAGMENT)
-        );
+    const engine::core::graphics::Pipeline* imgui_pipeline = _pipeline_cache->get(_imgui_pipeline_id);
 
-    _pipeline_cache_entries["mesh_pick"] =
-        _pipeline_cache->register_pipeline(
-            _shader_cache->get(shader_id("mesh_pick_vert")),
-            _shader_cache->get(shader_id("mesh_pick_frag")),
-            _material_cache->get_or_create_layout(vertex_ubo_layout),
-            position_binding,
-            pick_attachments,
-            engine::core::graphics::PipelineConfig{}
-                .set_depth_test(true)
-                .set_depth_write(true)
-                .set_blending(true)
-                .set_push_constant(128, engine::core::graphics::ShaderStageFlags::VERTEX
-                        | engine::core::graphics::ShaderStageFlags::FRAGMENT)
-        );
+    // create main swapchain
+    _main_swapchain = _device->create_swapchain_render_target(main_window, *imgui_pipeline, 3, false);
 
-    _pipeline_cache_entries["editor_present"] =
-        _pipeline_cache->register_pipeline(
-            _shader_cache->get(shader_id("editor_present_vert")),
-            _shader_cache->get(shader_id("editor_present_frag")),
-            _material_cache->get_or_create_layout(frag_sampler_layout),
-            engine::core::graphics::VertexBinding{},
-            present_attachments,
-            engine::core::graphics::PipelineConfig{}
-                .set_depth_test(true)
-                .set_depth_write(true)
-                .set_blending(true)
-        );
-
-    // default materials
-    _material_cache_entries["skybox"] =
-        _material_cache->register_material(
-            _pipeline_cache->get(pipeline_id("skybox")),
-            vertex_ubo_layout,
-            sizeof(UniformBufferObject)
-        );
-
-    _material_cache_entries["mesh_normal"] =
-        _material_cache->register_material(
-            _pipeline_cache->get(pipeline_id("mesh_normal")),
-            vertex_ubo_layout,
-            sizeof(UniformBufferObject)
-        );
-    
-    _material_cache_entries["mesh_outline"] =
-        _material_cache->register_material(
-            _pipeline_cache->get(pipeline_id("mesh_outline")),
-            vertex_ubo_layout,
-            sizeof(UniformBufferObject)
-        );
-    
-    _material_cache_entries["gizmo"] =
-        _material_cache->register_material(
-            _pipeline_cache->get(pipeline_id("gizmo")),
-            vertex_ubo_layout,
-            sizeof(UniformBufferObject)
-        );
-
-    _material_cache_entries["mesh_pick"] =
-        _material_cache->register_material(
-            _pipeline_cache->get(pipeline_id("mesh_pick")),
-            vertex_ubo_layout,
-            sizeof(UniformBufferObject)
-        );
-    
-    _material_cache_entries["editor_present"] =
-        _material_cache->register_material(
-            _pipeline_cache->get(pipeline_id("editor_present")),
-            frag_sampler_layout,
-            0
-        );
-
-    // gui
+    // initialize gui
     _editor_gui = std::make_unique<gui::EditorGui>(
         *_instance,
         *_device,
-        _pipeline_cache->get(pipeline_id("editor_present")),
+        *imgui_pipeline,
         main_window
     );
 
-    _scene_view_renderer = std::make_unique<EditorSceneViewRenderer>(*this, _width, _height);
-
-    // present viewport
-    _main_viewport = _device->create_viewport(
-        main_window,
-        _pipeline_cache->get(_pipeline_cache_entries["editor_present"]),
-        _width,
-        _height
+    // create frame graph
+    _frame_graph = std::make_unique<FrameGraph>(
+        _device.get(),
+        *_shader_cache.get(),
+        *_pipeline_cache.get()
     );
+
+    AttachmentDescription swapchain_attachment_desc{};
+    swapchain_attachment_desc.width  = _width;
+    swapchain_attachment_desc.height = _height;
+    swapchain_attachment_desc.format = _device->present_format();
+    swapchain_attachment_desc.texture_override = _main_swapchain->frame_color_texture(_main_swapchain->frame_index());
+    _swapchain_attachment = _frame_graph->register_attachment(swapchain_attachment_desc);
+
+    // present pass
+    engine::core::renderer::framegraph::RenderPass gui_pass;
+
+    gui_pass.set_clear_color(glm::vec4(0.05f, 0.05f, 0.05f, 1.0f));
+    gui_pass.set_clear_depth(glm::vec2(1.0f, 0.0f));
+    gui_pass.add_write_color(_swapchain_attachment);
+
+    gui_pass.set_execute([this](engine::core::renderer::framegraph::RenderPassContext& context) {
+        gui::GuiContext gui_context;
+        gui_context.command_buffer = context.command_buffer;
+
+        _editor_gui->on_gui(gui_context);
+    });
+
+    gui_pass.set_vertex_shader(imgui_vid);
+    gui_pass.set_vertex_shader(imgui_fid);
+    gui_pass.set_vertex_binding(imgui_binding);
+
+    gui_pass.set_pipeline_override(_imgui_pipeline_id);
+    gui_pass.set_render_target_override(_main_swapchain.get());
+    
+    _frame_graph->add_pass(gui_pass);
+
+    _frame_graph->bake();
 }
 
 void EditorRenderer::resize(uint32_t width, uint32_t height) {
+    if (width == 0 || height == 0) return;
+    if (width == _width && height == _height) return;
+
     _width = width;
     _height = height;
-    _main_viewport->resize(_width, _height);
-    _scene_view_renderer->resize(_width, _height);
+
+    // rebake frame graph
+    _frame_graph->bake();
 }
 
 void EditorRenderer::render_scene(engine::core::scene::Scene& scene) {
-    _frame_graph.clear();
-
-    // register scene view renderer passes to frame graph
-    _scene_view_renderer->register_passes(scene, _frame_graph);
-
-    // present pass
-    _present_pass_id = _frame_graph.add_pass(
-        &_pipeline_cache->get(pipeline_id("editor_present")),
-        _main_viewport.get(),
-        [this, &scene](engine::core::renderer::RenderPassContext& ctx, engine::core::renderer::RenderPassId) {
-            ctx.command_buffer = ctx.target->begin_frame(*ctx.pipeline);
-            ENGINE_ASSERT(ctx.command_buffer, "FrameGraph expects a valid command buffer");
-
-            gui::GuiContext gui_context;
-            gui_context.command_buffer = ctx.command_buffer;
-            gui_context.scene_view.texture_id = _scene_view_renderer->texture_id(_scene_view_renderer->frame_index());
-            gui_context.scene_view.camera = &_scene_view_renderer->camera();
-            gui_context.scene_view.scene = &scene;
-            gui_context.scene_view.selected_entity = _scene_view_renderer->selected_entity();
-
-            _editor_gui->on_gui(gui_context);
-
-            _scene_view_renderer->resize(gui_context.scene_view.out_size.x, gui_context.scene_view.out_size.y);
-
-            _scene_view_renderer->handle_picking(_scene_view_renderer->frame_index(),
-                glm::vec2(gui_context.scene_view.out_pos.x, gui_context.scene_view.out_pos.y),
-                glm::vec2(gui_context.scene_view.out_size.x, gui_context.scene_view.out_size.y)
-            );
-
-            ctx.target->end_frame();
-        }
-    );
-
     // execute frame graph
-    engine::core::renderer::RenderPassContext context{};
-    _frame_graph.execute(context);
+    _frame_graph->update_attachment_texture(_swapchain_attachment, _main_swapchain->frame_color_texture(_main_swapchain->frame_index()));
+    _frame_graph->execute();
+    _main_swapchain->present();
 }
 
 } // namespace editor::renderer

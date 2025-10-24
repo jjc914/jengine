@@ -139,7 +139,7 @@ struct DescriptorLayoutDescription {
         return bindings == other.bindings;
     }
 
-    size_t hash() const noexcept {
+    size_t hash() const {
         size_t h = 0;
         for (const auto& b : bindings) {
             // chat gpt generated hash

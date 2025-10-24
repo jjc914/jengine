@@ -101,13 +101,21 @@ VulkanMeshBuffer::VulkanMeshBuffer(
     }
 }
 
-void VulkanMeshBuffer::bind(void* command_buffer) const {
+void VulkanMeshBuffer::bind(engine::core::graphics::CommandBuffer* command_buffer) const {
     ENGINE_ASSERT(command_buffer != nullptr, "Attempted to bind mesh buffer with null command buffer");
 
     VkDeviceSize offset = 0;
-    VkCommandBuffer cb = static_cast<VkCommandBuffer>(command_buffer);
+    VkCommandBuffer cb = static_cast<VkCommandBuffer>(command_buffer->native_command_buffer());
     vkCmdBindVertexBuffers(cb, 0, 1, &_vertex_buffer.handle(), &offset);
     vkCmdBindIndexBuffer(cb, _index_buffer.handle(), 0, _index_type);
+}
+
+void VulkanMeshBuffer::draw(engine::core::graphics::CommandBuffer* command_buffer) const {
+    ENGINE_ASSERT(command_buffer != nullptr, "Attempted to draw mesh buffer with null command buffer");
+
+    VkDeviceSize offset = 0;
+    VkCommandBuffer cb = static_cast<VkCommandBuffer>(command_buffer->native_command_buffer());
+    vkCmdDrawIndexed(cb, _index_count, 1, 0, 0, 0);
 }
 
 }

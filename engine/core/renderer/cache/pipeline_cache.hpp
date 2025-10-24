@@ -31,7 +31,7 @@ public:
         const graphics::Shader& vert_shader,
         const graphics::Shader& frag_shader,
         const graphics::DescriptorSetLayout& layout,
-        const graphics::VertexBinding& vertex_binding,
+        const graphics::VertexBindingDescription& vertex_binding,
         const std::vector<graphics::ImageAttachmentInfo>& attachments,
         const core::graphics::PipelineConfig& config)
     {
@@ -47,14 +47,14 @@ public:
         _next_id = 0;
     }
 
-    graphics::Pipeline& get(PipelineCacheId id) {
+    graphics::Pipeline* get(PipelineCacheId id) {
         ENGINE_ASSERT(id < _next_id, "Invalid PipelineCacheId for PipelineCache");
-        return *_pipelines.at(id);
+        return _pipelines.at(id).get();
     }
 
-    const graphics::Pipeline& get(PipelineCacheId id) const {
+    const graphics::Pipeline* get(PipelineCacheId id) const {
         ENGINE_ASSERT(id < _next_id, "Invalid PipelineCacheId for PipelineCache");
-        return *_pipelines.at(id);
+        return _pipelines.at(id).get();
     }
 
 private:

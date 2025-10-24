@@ -11,7 +11,7 @@ namespace engine::drivers::vulkan {
 
 VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
     VkShaderModule vert, VkShaderModule frag,
-    const core::graphics::VertexBinding& vertex_binding, // TODO: add support for multiple bindings
+    const core::graphics::VertexBindingDescription& vertex_binding, // TODO: add support for multiple bindings
     const core::graphics::DescriptorSetLayout& layout,
     const std::vector<core::graphics::ImageAttachmentInfo>& attachment_info,
     const core::graphics::PipelineConfig& config) 
@@ -26,7 +26,7 @@ VulkanPipeline::VulkanPipeline(const VulkanDevice& device,
     bool has_depth = false;
     VkAttachmentReference depth_attachment_reference{};
     for (int i = 0; i < _attachment_info.size(); ++i) {
-        bool is_depth = static_cast<uint32_t>(_attachment_info[i].usage & core::graphics::ImageUsage::DEPTH);
+        bool is_depth = static_cast<uint32_t>(_attachment_info[i].usage & core::graphics::TextureUsage::DEPTH_ATTACHMENT);
         VkAttachmentLoadOp stencil_load_op = is_depth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
         attachment_descriptions.emplace_back(

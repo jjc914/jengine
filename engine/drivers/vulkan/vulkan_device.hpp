@@ -4,9 +4,12 @@
 #include "engine/core/graphics/device.hpp"
 #include "engine/core/graphics/instance.hpp"
 #include "engine/core/graphics/shader.hpp"
+#include "engine/core/graphics/texture.hpp"
 #include "engine/core/graphics/pipeline.hpp"
 #include "engine/core/graphics/mesh_buffer.hpp"
 #include "engine/core/graphics/material.hpp"
+#include "engine/core/graphics/render_target.hpp"
+#include "engine/core/graphics/swapchain_render_target.hpp"
 #include "engine/core/graphics/descriptor_set_layout.hpp"
 
 #include "engine/core/window/window.hpp"
@@ -21,6 +24,13 @@ class VulkanInstance;
 class VulkanDevice final : public core::graphics::Device {
 public:
     VulkanDevice(const VulkanInstance& instance, const core::window::Window& window);
+
+    VulkanDevice(VulkanDevice&& other) = default;
+    VulkanDevice& operator=(VulkanDevice&& other) = default;
+
+    VulkanDevice(const VulkanDevice&) = delete;
+    VulkanDevice& operator=(const VulkanDevice&) = delete;
+
     ~VulkanDevice() override = default;
 
     void wait_idle() override;
@@ -28,29 +38,46 @@ public:
     std::unique_ptr<core::graphics::Shader> create_shader(engine::core::graphics::ShaderStageFlags stage, const std::string& filepath) const override;
     std::unique_ptr<core::graphics::MeshBuffer> create_mesh_buffer(
         const void* vertex_data, uint32_t vertex_size, uint32_t vertex_count,
-        const void* index_data, uint32_t index_size, uint32_t index_count) const override;
+        const void* index_data, uint32_t index_size, uint32_t index_count
+    ) const override;
+    std::unique_ptr<core::graphics::Texture> create_texture(
+        uint32_t width,
+        uint32_t height,
+        core::graphics::ImageFormat format,
+        uint32_t layers,
+        uint32_t mip_levels,
+        core::graphics::TextureUsage usage
+    ) const override;
+    std::unique_ptr<core::graphics::Texture> create_texture_from_native(
+        void* image,
+        void* view,
+        uint32_t width,
+        uint32_t height,
+        core::graphics::ImageFormat format,
+        uint32_t layers,
+        uint32_t mip_levels,
+        core::graphics::TextureUsage usage
+    ) const override;
     std::unique_ptr<core::graphics::Pipeline> create_pipeline(
         const core::graphics::Shader& vert, const core::graphics::Shader& frag,
         const core::graphics::DescriptorSetLayout& layout,
-        const core::graphics::VertexBinding& vertex_binding, 
+        const core::graphics::VertexBindingDescription& vertex_binding, 
         const std::vector<core::graphics::ImageAttachmentInfo>& attachment_info,
         const core::graphics::PipelineConfig& config
     ) const override;
-    std::unique_ptr<core::graphics::RenderTarget> create_viewport(
+    std::unique_ptr<core::graphics::SwapchainRenderTarget> create_swapchain_render_target(
         const core::window::Window& window,
         const core::graphics::Pipeline& pipeline,
-        uint32_t width, uint32_t height
+        uint32_t max_in_flight, bool has_depth
     ) const override;
     std::unique_ptr<core::graphics::RenderTarget> create_texture_render_target(
         const core::graphics::Pipeline& pipeline,
-        uint32_t width, uint32_t height
+        const core::graphics::AttachmentInfo& attachments,
+        uint32_t max_in_flight
     ) const override;
     std::unique_ptr<core::graphics::DescriptorSetLayout> create_descriptor_set_layout(
         const core::graphics::DescriptorLayoutDescription& description
     ) const override;
-
-    void* begin_command_buffer() const override;
-    void end_command_buffer(void* command_buffer) const override;
 
     const wk::PhysicalDevice& physical_device() const { return _physical_device; }
 

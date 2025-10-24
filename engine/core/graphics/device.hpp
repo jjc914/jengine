@@ -4,9 +4,11 @@
 #include "vertex_types.hpp"
 #include "image_types.hpp"
 #include "shader.hpp"
+#include "texture.hpp"
 #include "mesh_buffer.hpp"
 #include "pipeline.hpp"
 #include "render_target.hpp"
+#include "swapchain_render_target.hpp"
 #include "descriptor_set_layout.hpp"
 #include "descriptor_types.hpp"
 
@@ -27,28 +29,44 @@ public:
         const void* vertex_data, uint32_t vertex_size, uint32_t vertex_count,
         const void* index_data, uint32_t index_size, uint32_t index_count
     ) const = 0;
+    virtual std::unique_ptr<core::graphics::Texture> create_texture(
+        uint32_t width,
+        uint32_t height,
+        core::graphics::ImageFormat format,
+        uint32_t layers = 1,
+        uint32_t mip_levels = 1,
+        core::graphics::TextureUsage usage = core::graphics::TextureUsage::COLOR_ATTACHMENT
+    ) const = 0;
+    virtual std::unique_ptr<core::graphics::Texture> create_texture_from_native(
+        void* image,
+        void* view,
+        uint32_t width,
+        uint32_t height,
+        core::graphics::ImageFormat format,
+        uint32_t layers,
+        uint32_t mip_levels,
+        core::graphics::TextureUsage usage
+    ) const = 0;
     virtual std::unique_ptr<Pipeline> create_pipeline(
         const Shader& vert, const Shader& frag,
         const DescriptorSetLayout& layout,
-        const VertexBinding& vertex_binding, 
+        const VertexBindingDescription& vertex_binding, 
         const std::vector<ImageAttachmentInfo>& attachment_info,
         const core::graphics::PipelineConfig& config
     ) const = 0;
-    virtual std::unique_ptr<RenderTarget> create_viewport(
+    virtual std::unique_ptr<SwapchainRenderTarget> create_swapchain_render_target(
         const window::Window& window, 
-        const Pipeline& render_pass,
-        uint32_t width, uint32_t height
+        const Pipeline& pipeline,
+        uint32_t max_in_flight = 3, bool has_depth = true
     ) const = 0;
     virtual std::unique_ptr<core::graphics::RenderTarget> create_texture_render_target(
         const core::graphics::Pipeline& pipeline,
-        uint32_t width, uint32_t height
+        const core::graphics::AttachmentInfo& attachments,
+        uint32_t max_in_flight = 1
     ) const = 0;
     virtual std::unique_ptr<DescriptorSetLayout> create_descriptor_set_layout(
         const DescriptorLayoutDescription& description
     ) const = 0;
-
-    virtual void* begin_command_buffer() const = 0;
-    virtual void end_command_buffer(void* cb) const = 0;
 
     virtual ImageFormat present_format() const = 0;
     virtual ColorSpace present_color_space() const = 0;

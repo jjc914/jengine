@@ -50,9 +50,16 @@ target_sources(engine PRIVATE
     engine/core/graphics/render_target.hpp
     engine/core/graphics/shader.hpp
     engine/core/graphics/vertex_types.hpp
+    engine/core/graphics/texture.hpp
+    engine/core/graphics/swapchain_render_target.hpp
 
     engine/core/renderer/renderer.hpp
-    engine/core/renderer/frame_graph.hpp
+    engine/core/renderer/frame_graph/frame_graph_id.hpp
+    engine/core/renderer/frame_graph/frame_graph.hpp     engine/core/renderer/frame_graph/frame_graph.cpp
+    engine/core/renderer/frame_graph/render_pass.hpp
+    engine/core/renderer/frame_graph/attachment.hpp
+    engine/core/renderer/frame_graph/pipeline_description.hpp
+
     engine/core/renderer/cache/material_cache.hpp
     engine/core/renderer/cache/mesh_cache.hpp
     engine/core/renderer/cache/pipeline_cache.hpp
@@ -66,16 +73,18 @@ target_sources(engine PRIVATE
     engine/import/mesh.hpp   engine/import/mesh.cpp
 
     engine/drivers/vulkan/convert_vulkan.hpp
-    engine/drivers/vulkan/vulkan_descriptor_set_layout.hpp  engine/drivers/vulkan/vulkan_descriptor_set_layout.cpp
-    engine/drivers/vulkan/vulkan_device.hpp                 engine/drivers/vulkan/vulkan_device.cpp
-    engine/drivers/vulkan/vulkan_instance.hpp               engine/drivers/vulkan/vulkan_instance.cpp
-    engine/drivers/vulkan/vulkan_material.hpp               engine/drivers/vulkan/vulkan_material.cpp
-    engine/drivers/vulkan/vulkan_mesh_buffer.hpp            engine/drivers/vulkan/vulkan_mesh_buffer.cpp
-    engine/drivers/vulkan/vulkan_pipeline.hpp               engine/drivers/vulkan/vulkan_pipeline.cpp
+    engine/drivers/vulkan/vulkan_command_buffer.hpp
+    engine/drivers/vulkan/vulkan_descriptor_set_layout.hpp    engine/drivers/vulkan/vulkan_descriptor_set_layout.cpp
+    engine/drivers/vulkan/vulkan_device.hpp                   engine/drivers/vulkan/vulkan_device.cpp
+    engine/drivers/vulkan/vulkan_instance.hpp                 engine/drivers/vulkan/vulkan_instance.cpp
+    engine/drivers/vulkan/vulkan_material.hpp                 engine/drivers/vulkan/vulkan_material.cpp
+    engine/drivers/vulkan/vulkan_mesh_buffer.hpp              engine/drivers/vulkan/vulkan_mesh_buffer.cpp
+    engine/drivers/vulkan/vulkan_pipeline.hpp                 engine/drivers/vulkan/vulkan_pipeline.cpp
     engine/drivers/vulkan/vulkan_render_target.hpp
-    engine/drivers/vulkan/vulkan_shader.hpp                 engine/drivers/vulkan/vulkan_shader.cpp
-    engine/drivers/vulkan/vulkan_texture_render_target.hpp  engine/drivers/vulkan/vulkan_texture_render_target.cpp
-    engine/drivers/vulkan/vulkan_viewport.hpp               engine/drivers/vulkan/vulkan_viewport.cpp
+    engine/drivers/vulkan/vulkan_shader.hpp                   engine/drivers/vulkan/vulkan_shader.cpp
+    engine/drivers/vulkan/vulkan_texture_render_target.hpp    engine/drivers/vulkan/vulkan_texture_render_target.cpp
+    engine/drivers/vulkan/vulkan_swapchain_render_target.hpp  engine/drivers/vulkan/vulkan_swapchain_render_target.cpp
+    engine/drivers/vulkan/vulkan_texture.hpp                  engine/drivers/vulkan/vulkan_texture.cpp
 
     engine/drivers/glfw/glfw_window.hpp       engine/drivers/glfw/glfw_window.cpp
 )
@@ -92,7 +101,7 @@ add_executable(editor
     editor/gui/panels/console_panel.hpp     editor/gui/panels/console_panel.cpp
 
     editor/renderer/editor_renderer.hpp             editor/renderer/editor_renderer.cpp
-    editor/renderer/editor_scene_view_renderer.hpp  editor/renderer/editor_scene_view_renderer.cpp
+    # editor/renderer/editor_scene_view_renderer.hpp  editor/renderer/editor_scene_view_renderer.cpp
 )
 
 target_compile_definitions(editor PUBLIC WLK_ENABLE_VALIDATION_LAYERS)

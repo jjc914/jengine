@@ -12,11 +12,20 @@ class VulkanDevice;
 class VulkanMeshBuffer : public core::graphics::MeshBuffer {
 public:
     VulkanMeshBuffer(const VulkanDevice& device,
-                     const void* vertex_data, uint32_t vertex_size, uint32_t vertex_count,
-                     const void* index_data, uint32_t index_size, uint32_t index_count);
+        const void* vertex_data, uint32_t vertex_size, uint32_t vertex_count,
+        const void* index_data, uint32_t index_size, uint32_t index_count
+    );
+
+    VulkanMeshBuffer(VulkanMeshBuffer&& other) = default;
+    VulkanMeshBuffer& operator=(VulkanMeshBuffer&& other) = default;
+
+    VulkanMeshBuffer(const VulkanMeshBuffer&) = delete;
+    VulkanMeshBuffer& operator=(const VulkanMeshBuffer&) = delete;
+
     ~VulkanMeshBuffer() override = default;
 
-    void bind(void* command_buffer) const override;
+    void bind(engine::core::graphics::CommandBuffer* command_buffer) const override;
+    void draw(engine::core::graphics::CommandBuffer* command_buffer) const override;
 
     uint32_t vertex_count() const override { return _vertex_count; }
     uint32_t index_count() const override { return _index_count; }

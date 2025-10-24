@@ -29,7 +29,6 @@ private:
     VkInstance _instance;
 
     GLFWwindow* _window = nullptr;
-    wk::ext::glfw::Surface _surface;
 
     uint32_t _width = 0;
     uint32_t _height = 0;

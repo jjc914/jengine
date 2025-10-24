@@ -72,7 +72,7 @@ EditorGui::EditorGui(const engine::core::graphics::Instance& instance,
 
     _is_first_frame = true;
 
-    _panels.emplace_back(std::make_unique<panels::SceneViewPanel>());
+    // _panels.emplace_back(std::make_unique<panels::SceneViewPanel>());
     _panels.emplace_back(std::make_unique<panels::InspectorPanel>());
     _panels.emplace_back(std::make_unique<panels::ConsolePanel>());
 }
@@ -87,7 +87,7 @@ EditorGui::~EditorGui() {
 
 void EditorGui::on_gui(GuiContext& context) {
     ENGINE_ASSERT(context.command_buffer, "EditorGui expects a valid command buffer.");
-    void* cb = context.command_buffer;
+    void* cb = context.command_buffer->native_command_buffer();
 
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();    
@@ -103,9 +103,9 @@ void EditorGui::on_gui(GuiContext& context) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-    host_window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-                         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                         ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+    host_window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse
+        | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
+        | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
     // background clear
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));

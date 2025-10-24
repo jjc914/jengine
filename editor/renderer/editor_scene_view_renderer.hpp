@@ -4,7 +4,7 @@
 #include "engine/core/scene/scene.hpp"
 #include "editor/scene/editor_camera.hpp"
 
-#include "engine/core/renderer/frame_graph.hpp"
+#include "engine/core/renderer/frame_graph/frame_graph.hpp"
 #include "engine/core/renderer/cache/pipeline_cache.hpp"
 #include "engine/core/renderer/cache/material_cache.hpp"
 #include "engine/core/renderer/cache/mesh_cache.hpp"
@@ -65,7 +65,7 @@ private:
     std::unique_ptr<engine::core::graphics::RenderTarget> _view_target;
     std::unique_ptr<engine::core::graphics::RenderTarget> _pick_target;
 
-    engine::core::renderer::FrameGraph _frame_graph;
+    engine::core::renderer::framegraph::FrameGraph _frame_graph;
 
     std::vector<ImTextureID> _imgui_texture_ids;
     wk::Sampler _sampler;

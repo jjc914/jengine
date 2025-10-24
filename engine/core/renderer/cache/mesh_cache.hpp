@@ -39,14 +39,14 @@ public:
         _meshes.clear();
     }
 
-    graphics::MeshBuffer& get(MeshCacheId id) {
+    graphics::MeshBuffer* get(MeshCacheId id) {
         ENGINE_ASSERT(id < _next_id, "Invalid MeshCacheId for MeshCache");
-        return *_meshes.at(id);
+        return _meshes.at(id).get();
     }
 
-    const graphics::MeshBuffer& get(MeshCacheId id) const {
+    const graphics::MeshBuffer* get(MeshCacheId id) const {
         ENGINE_ASSERT(id < _next_id, "Invalid MeshCacheId for MeshCache");
-        return *_meshes.at(id);
+        return _meshes.at(id).get();
     }
 
 private:

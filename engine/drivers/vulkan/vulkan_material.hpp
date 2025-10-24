@@ -19,6 +19,13 @@ public:
         VkDescriptorSetLayout layout,
         uint32_t uniform_buffer_size
     );
+
+    VulkanMaterial(VulkanMaterial&& other) = default;
+    VulkanMaterial& operator=(VulkanMaterial&& other) = default;
+
+    VulkanMaterial(const VulkanMaterial&) = delete;
+    VulkanMaterial& operator=(const VulkanMaterial&) = delete;
+
     ~VulkanMaterial() override = default;
 
     void bind(void* cb) const override;

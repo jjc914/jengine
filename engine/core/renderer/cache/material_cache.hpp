@@ -46,14 +46,14 @@ public:
         _layouts.clear();
     }
 
-    graphics::Material& get(MaterialCacheId id) {
+    graphics::Material* get(MaterialCacheId id) {
         ENGINE_ASSERT(id < _next_id, "Invalid MaterialCacheId for MaterialCache");
-        return *_materials[id];
+        return _materials[id].get();
     }
 
-    const graphics::Material& get(MaterialCacheId id) const {
+    const graphics::Material* get(MaterialCacheId id) const {
         ENGINE_ASSERT(id < _next_id, "Invalid MaterialCacheId for MaterialCache");
-        return *_materials[id];
+        return _materials[id].get();
     }
 
     const graphics::DescriptorSetLayout& get_or_create_layout(

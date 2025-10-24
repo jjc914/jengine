@@ -19,8 +19,8 @@ using ShaderCacheId = uint32_t;
 
 class ShaderCache {
 public:
-    explicit ShaderCache(const graphics::Device& device)
-        : _device(device), _next_id(0) {}
+    ShaderCache(const graphics::Device& device)
+    : _device(device) {}
 
     ShaderCache(const ShaderCache&) = delete;
     ShaderCache& operator=(const ShaderCache&) = delete;
@@ -33,14 +33,14 @@ public:
         return id;
     }
 
-    graphics::Shader& get(ShaderCacheId id) {
+    graphics::Shader* get(ShaderCacheId id) {
         ENGINE_ASSERT(id < _next_id, "Invalid ShaderCacheId for ShaderCache");
-        return *_shaders.at(id);
+        return _shaders.at(id).get();
     }
 
-    const graphics::Shader& get(ShaderCacheId id) const {
+    const graphics::Shader* get(ShaderCacheId id) const {
         ENGINE_ASSERT(id < _next_id, "Invalid ShaderCacheId for ShaderCache");
-        return *_shaders[id];
+        return _shaders.at(id).get();
     }
 
     void clear() noexcept {
@@ -51,7 +51,7 @@ public:
 private:
     const graphics::Device& _device;
 
-    ShaderCacheId _next_id;
+    ShaderCacheId _next_id = 0;
     std::vector<std::unique_ptr<graphics::Shader>> _shaders;
 };
 

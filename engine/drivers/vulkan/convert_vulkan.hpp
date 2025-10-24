@@ -4,6 +4,7 @@
 #include "engine/core/graphics/vertex_types.hpp"
 #include "engine/core/graphics/image_types.hpp"
 #include "engine/core/graphics/descriptor_types.hpp"
+#include "engine/core/graphics/texture.hpp"
 #include "engine/core/graphics/pipeline.hpp"
 
 #include <wk/wulkan.hpp>
@@ -85,25 +86,27 @@ inline core::graphics::ImageFormat FromImageVkFormat(VkFormat fmt) {
 inline VkFormat ToVkFormat(core::graphics::VertexFormat fmt) {
     using VF = core::graphics::VertexFormat;
     switch (fmt) {
-        case VF::FLOAT1: return VK_FORMAT_R32_SFLOAT;
-        case VF::FLOAT2: return VK_FORMAT_R32G32_SFLOAT;
-        case VF::FLOAT3: return VK_FORMAT_R32G32B32_SFLOAT;
-        case VF::FLOAT4: return VK_FORMAT_R32G32B32A32_SFLOAT;
+        case VF::FLOAT_1:  return VK_FORMAT_R32_SFLOAT;
+        case VF::FLOAT_2:  return VK_FORMAT_R32G32_SFLOAT;
+        case VF::FLOAT_3:  return VK_FORMAT_R32G32B32_SFLOAT;
+        case VF::FLOAT_4:  return VK_FORMAT_R32G32B32A32_SFLOAT;
 
-        case VF::INT1:   return VK_FORMAT_R32_SINT;
-        case VF::INT2:   return VK_FORMAT_R32G32_SINT;
-        case VF::INT3:   return VK_FORMAT_R32G32B32_SINT;
-        case VF::INT4:   return VK_FORMAT_R32G32B32A32_SINT;
+        case VF::INT_1:    return VK_FORMAT_R32_SINT;
+        case VF::INT_2:    return VK_FORMAT_R32G32_SINT;
+        case VF::INT_3:    return VK_FORMAT_R32G32B32_SINT;
+        case VF::INT_4:    return VK_FORMAT_R32G32B32A32_SINT;
 
-        case VF::UINT1:  return VK_FORMAT_R32_UINT;
-        case VF::UINT2:  return VK_FORMAT_R32G32_UINT;
-        case VF::UINT3:  return VK_FORMAT_R32G32B32_UINT;
-        case VF::UINT4:  return VK_FORMAT_R32G32B32A32_UINT;
+        case VF::UINT_1:   return VK_FORMAT_R32_UINT;
+        case VF::UINT_2:   return VK_FORMAT_R32G32_UINT;
+        case VF::UINT_3:   return VK_FORMAT_R32G32B32_UINT;
+        case VF::UINT_4:   return VK_FORMAT_R32G32B32A32_UINT;
 
-        case VF::HALF1:  return VK_FORMAT_R16_SFLOAT;
-        case VF::HALF2:  return VK_FORMAT_R16G16_SFLOAT;
-        case VF::HALF3:  return VK_FORMAT_R16G16B16_SFLOAT;
-        case VF::HALF4:  return VK_FORMAT_R16G16B16A16_SFLOAT;
+        case VF::HALF_1:   return VK_FORMAT_R16_SFLOAT;
+        case VF::HALF_2:   return VK_FORMAT_R16G16_SFLOAT;
+        case VF::HALF_3:   return VK_FORMAT_R16G16B16_SFLOAT;
+        case VF::HALF_4:   return VK_FORMAT_R16G16B16A16_SFLOAT;
+
+        case VF::UNORM8_4: return VK_FORMAT_R8G8B8A8_UNORM;
 
         default:
             ENGINE_ASSERT(false, "Unrecognized VertexFormat enum in ToVkFormat()");
@@ -111,15 +114,15 @@ inline VkFormat ToVkFormat(core::graphics::VertexFormat fmt) {
     }
 }
 
-inline VkImageLayout ToVkSubpassLayout(core::graphics::ImageUsage usage) {
-    using IU = core::graphics::ImageUsage;
+inline VkImageLayout ToVkSubpassLayout(core::graphics::TextureUsage usage) {
+    using IU = core::graphics::TextureUsage;
     const uint32_t u = static_cast<uint32_t>(usage);
 
-    const bool is_present  = u & static_cast<uint32_t>(IU::PRESENT);
-    const bool is_depth    = u & static_cast<uint32_t>(IU::DEPTH);
-    const bool is_color    = u & static_cast<uint32_t>(IU::COLOR);
-    const bool is_sampled  = u & static_cast<uint32_t>(IU::SAMPLING);
-    const bool is_storage  = u & static_cast<uint32_t>(IU::STORAGE);
+    const bool is_present  = u & static_cast<uint32_t>(IU::PRESENT_SRC);
+    const bool is_depth    = u & static_cast<uint32_t>(IU::DEPTH_ATTACHMENT);
+    const bool is_color    = u & static_cast<uint32_t>(IU::COLOR_ATTACHMENT);
+    const bool is_sampled  = u & static_cast<uint32_t>(IU::SAMPLED_IMAGE);
+    const bool is_storage  = u & static_cast<uint32_t>(IU::STORAGE_IMAGE);
     const bool is_copy_src = u & static_cast<uint32_t>(IU::COPY_SRC);
     const bool is_copy_dst = u & static_cast<uint32_t>(IU::COPY_DST);
 
@@ -135,14 +138,14 @@ inline VkImageLayout ToVkSubpassLayout(core::graphics::ImageUsage usage) {
     return VK_IMAGE_LAYOUT_GENERAL;
 }
 
-inline VkImageLayout ToVkFinalLayout(core::graphics::ImageUsage usage) {
-    using IU = core::graphics::ImageUsage;
+inline VkImageLayout ToVkFinalLayout(core::graphics::TextureUsage usage) {
+    using IU = core::graphics::TextureUsage;
     const uint32_t u = static_cast<uint32_t>(usage);
 
-    const bool is_present  = u & static_cast<uint32_t>(IU::PRESENT);
-    const bool is_depth    = u & static_cast<uint32_t>(IU::DEPTH);
-    const bool is_color    = u & static_cast<uint32_t>(IU::COLOR);
-    const bool is_sampled  = u & static_cast<uint32_t>(IU::SAMPLING);
+    const bool is_present  = u & static_cast<uint32_t>(IU::PRESENT_SRC);
+    const bool is_depth    = u & static_cast<uint32_t>(IU::DEPTH_ATTACHMENT);
+    const bool is_color    = u & static_cast<uint32_t>(IU::COLOR_ATTACHMENT);
+    const bool is_sampled  = u & static_cast<uint32_t>(IU::SAMPLED_IMAGE);
     const bool is_copy_src = u & static_cast<uint32_t>(IU::COPY_SRC);
     const bool is_copy_dst = u & static_cast<uint32_t>(IU::COPY_DST);
 
@@ -263,6 +266,48 @@ inline VkPolygonMode ToVkPolygonMode(core::graphics::PolygonMode mode) {
         default:
             ENGINE_ASSERT(false, "Unsupported PolygonMode");
             return VK_POLYGON_MODE_FILL;
+    }
+}
+
+inline VkImageUsageFlags ToVkUsage(core::graphics::TextureUsage usage) {
+    using IU = core::graphics::TextureUsage;
+    VkImageUsageFlags flags = 0;
+    const uint32_t u = static_cast<uint32_t>(usage);
+
+    if (u & static_cast<uint32_t>(IU::COLOR_ATTACHMENT))
+        flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    if (u & static_cast<uint32_t>(IU::DEPTH_ATTACHMENT))
+        flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    if (u & static_cast<uint32_t>(IU::SAMPLED_IMAGE))
+        flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    if (u & static_cast<uint32_t>(IU::STORAGE_IMAGE))
+        flags |= VK_IMAGE_USAGE_STORAGE_BIT;
+    if (u & static_cast<uint32_t>(IU::COPY_SRC))
+        flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    if (u & static_cast<uint32_t>(IU::COPY_DST))
+        flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    if (u & static_cast<uint32_t>(IU::PRESENT_SRC))
+        flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    if (flags == 0) {
+        ENGINE_ASSERT(false, "No image usage flag found");
+        flags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    }
+    return flags;
+}
+
+inline VkImageLayout ToVkLayout(core::graphics::TextureLayout layout) {
+    using TL = core::graphics::TextureLayout;
+    switch (layout) {
+        case TL::UNDEFINED:     return VK_IMAGE_LAYOUT_UNDEFINED;
+        case TL::GENERAL:       return VK_IMAGE_LAYOUT_GENERAL;
+        case TL::COLOR:         return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        case TL::DEPTH:         return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        case TL::SAMPLE:        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        case TL::TRANSFER_SRC:  return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        case TL::TRANSFER_DST:  return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        case TL::PRESENT:       return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        default:                return VK_IMAGE_LAYOUT_UNDEFINED;
     }
 }
 

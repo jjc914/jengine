@@ -12,6 +12,13 @@ class VulkanDevice;
 class VulkanShader final : public core::graphics::Shader {
 public:
     VulkanShader(const VulkanDevice& device, core::graphics::ShaderStageFlags stage, const std::string& filepath);
+
+    VulkanShader(VulkanShader&& other) = default;
+    VulkanShader& operator=(VulkanShader&& other) = default;
+
+    VulkanShader(const VulkanShader&) = delete;
+    VulkanShader& operator=(const VulkanShader&) = delete;
+
     ~VulkanShader() override = default;
 
     core::graphics::ShaderStageFlags stage() const override { return _stage; }

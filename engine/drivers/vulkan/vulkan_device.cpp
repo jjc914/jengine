@@ -3,8 +3,9 @@
 #include "vulkan_instance.hpp"
 #include "vulkan_pipeline.hpp"
 #include "vulkan_shader.hpp"
+#include "vulkan_texture.hpp"
 #include "vulkan_mesh_buffer.hpp"
-#include "vulkan_viewport.hpp"
+#include "vulkan_swapchain_render_target.hpp"
 #include "vulkan_texture_render_target.hpp"
 #include "vulkan_material.hpp"
 #include "vulkan_descriptor_set_layout.hpp"
@@ -197,10 +198,51 @@ std::unique_ptr<core::graphics::MeshBuffer> VulkanDevice::create_mesh_buffer(
     );
 }
 
+std::unique_ptr<core::graphics::Texture> VulkanDevice::create_texture(
+    uint32_t width,
+    uint32_t height,
+    core::graphics::ImageFormat format,
+    uint32_t layers,
+    uint32_t mip_levels,
+    core::graphics::TextureUsage usage) const
+{
+    ENGINE_ASSERT(width != 0 && height != 0, "Texture requires a non-zero width and height");
+    return std::make_unique<VulkanTexture>(
+        *this,
+        width, height,
+        format,
+        layers, mip_levels,
+        usage
+    );
+}
+
+std::unique_ptr<core::graphics::Texture> VulkanDevice::create_texture_from_native(
+    void* image,
+    void* view,
+    uint32_t width,
+    uint32_t height,
+    core::graphics::ImageFormat format,
+    uint32_t layers,
+    uint32_t mip_levels,
+    core::graphics::TextureUsage usage
+) const {
+    ENGINE_ASSERT(width != 0 && height != 0, "Texture requires a non-zero width and height");
+    return std::make_unique<VulkanTexture>(
+        *this,
+        static_cast<VkImage>(image),
+        static_cast<VkImageView>(view),
+        width, height,
+        format,
+        layers,
+        mip_levels,
+        usage
+    );
+}
+
 std::unique_ptr<core::graphics::Pipeline> VulkanDevice::create_pipeline(
     const core::graphics::Shader& vert, const core::graphics::Shader& frag,
     const core::graphics::DescriptorSetLayout& layout,
-    const core::graphics::VertexBinding& vertex_binding, 
+    const core::graphics::VertexBindingDescription& vertex_binding, 
     const std::vector<core::graphics::ImageAttachmentInfo>& attachment_info,
     const core::graphics::PipelineConfig& config
 ) const {
@@ -214,23 +256,22 @@ std::unique_ptr<core::graphics::Pipeline> VulkanDevice::create_pipeline(
     );
 }
 
-std::unique_ptr<core::graphics::RenderTarget> VulkanDevice::create_viewport(
+std::unique_ptr<core::graphics::SwapchainRenderTarget> VulkanDevice::create_swapchain_render_target(
     const core::window::Window& window, const core::graphics::Pipeline& pipeline,
-    uint32_t width, uint32_t height
+    uint32_t max_in_flight, bool has_depth
 ) const {
-    return std::make_unique<VulkanViewport>(
-        *this, window, pipeline,
-        width, height, 3
+    return std::make_unique<VulkanSwapchainRenderTarget>(
+        *this, window, pipeline, max_in_flight, has_depth
     );
 }
 
 std::unique_ptr<core::graphics::RenderTarget> VulkanDevice::create_texture_render_target(
     const core::graphics::Pipeline& pipeline,
-    uint32_t width, uint32_t height
+    const core::graphics::AttachmentInfo& attachments,
+    uint32_t max_in_flight
 ) const {
     return std::make_unique<VulkanTextureRenderTarget>(
-        *this, pipeline,
-        width, height, 3
+        *this, pipeline, attachments, max_in_flight
     );
 }
 
@@ -240,39 +281,6 @@ std::unique_ptr<core::graphics::DescriptorSetLayout> VulkanDevice::create_descri
     return std::make_unique<VulkanDescriptorSetLayout>(
         *this, description
     );
-}
-
-void* VulkanDevice::begin_command_buffer() const {
-    VkCommandBufferAllocateInfo alloc_info = wk::CommandBufferAllocateInfo{}
-        .set_level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
-        .set_command_pool(_command_pool.handle())
-        .set_command_buffer_count(1)
-        .to_vk();
-
-    VkCommandBuffer command_buffer;
-    vkAllocateCommandBuffers(_device.handle(), &alloc_info, &command_buffer);
-
-    VkCommandBufferBeginInfo begin_info = wk::CommandBufferBeginInfo{}
-        .set_flags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)
-        .to_vk();
-
-    vkBeginCommandBuffer(command_buffer, &begin_info);
-    return static_cast<void*>(command_buffer);
-}
-
-void VulkanDevice::end_command_buffer(void* command_buffer) const {
-    VkCommandBuffer cb = static_cast<VkCommandBuffer>(command_buffer);
-    vkEndCommandBuffer(cb);
-
-    VkSubmitInfo submit_info{};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &cb;
-
-    vkQueueSubmit(_graphics_queue.handle(), 1, &submit_info, VK_NULL_HANDLE);
-    vkQueueWaitIdle(_graphics_queue.handle());
-
-    vkFreeCommandBuffers(_device.handle(), _command_pool.handle(), 1, &cb);
 }
 
 }

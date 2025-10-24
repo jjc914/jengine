@@ -11,26 +11,29 @@ namespace engine::core::graphics {
 enum class VertexFormat {
     UNDEFINED = 0,
 
-    FLOAT1,
-    FLOAT2,
-    FLOAT3,
-    FLOAT4,
+    FLOAT_1,
+    FLOAT_2,
+    FLOAT_3,
+    FLOAT_4,
 
-    INT1,
-    INT2,
-    INT3,
-    INT4,
+    INT_1,
+    INT_2,
+    INT_3,
+    INT_4,
 
-    UINT1,
-    UINT2,
-    UINT3,
-    UINT4,
+    UINT_1,
+    UINT_2,
+    UINT_3,
+    UINT_4,
 
-    HALF1,
-    HALF2,
-    HALF3,
-    HALF4
+    HALF_1,
+    HALF_2,
+    HALF_3,
+    HALF_4,
+
+    UNORM8_4
 };
+
 
 struct VertexAttribute {
     uint32_t location = 0;
@@ -56,25 +59,25 @@ struct VertexAttribute {
     }
 };
 
-struct VertexBinding {
+struct VertexBindingDescription {
     uint32_t binding = 0;
     uint32_t stride = 0;
     std::vector<VertexAttribute> attributes;
 
-    VertexBinding& set_binding(uint32_t b) {
+    VertexBindingDescription& set_binding(uint32_t b) {
         ENGINE_ASSERT(b < 16, "Vertex binding index unusually large (expected <16)");
         binding = b;
         return *this;
     }
 
-    VertexBinding& set_stride(uint32_t s) {
+    VertexBindingDescription& set_stride(uint32_t s) {
         ENGINE_ASSERT(s > 0, "Vertex stride must be greater than 0");
         ENGINE_ASSERT(s < 4096, "Vertex stride unusually large (expected <4096 bytes)");
         stride = s;
         return *this;
     }
 
-    VertexBinding& add_attribute(uint32_t l, VertexFormat f, uint32_t o) {
+    VertexBindingDescription& add_attribute(uint32_t l, VertexFormat f, uint32_t o) {
         for (const VertexAttribute& a : attributes)
             ENGINE_ASSERT(a.location != l, "Duplicate vertex attribute location in binding");
         attributes.emplace_back(
@@ -86,7 +89,7 @@ struct VertexBinding {
         return *this;
     }
 
-    VertexBinding& set_attributes(const std::vector<VertexAttribute>& a) {
+    VertexBindingDescription& set_attributes(const std::vector<VertexAttribute>& a) {
         for (const VertexAttribute& ai : a)
             ENGINE_ASSERT(ai.format != VertexFormat::UNDEFINED, "Vertex attribute has undefined format");
         for (size_t i = 0; i < a.size(); ++i) {

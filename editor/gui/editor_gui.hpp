@@ -5,6 +5,7 @@
 #include "engine/drivers/vulkan/vulkan_device.hpp"
 #include "engine/core/window/window.hpp"
 #include "engine/core/graphics/pipeline.hpp"
+#include "engine/core/graphics/command_buffer.hpp"
 
 #include "panels/panel.hpp"
 
@@ -24,7 +25,7 @@
 namespace editor::gui {
 
 struct GuiContext {
-    void* command_buffer;
+    engine::core::graphics::CommandBuffer* command_buffer;
 
     struct SceneView {
         ImTextureID texture_id;

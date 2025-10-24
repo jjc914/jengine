@@ -18,10 +18,18 @@ class VulkanPipeline final : public core::graphics::Pipeline {
 public:
     VulkanPipeline(const VulkanDevice& device,
         VkShaderModule vert, VkShaderModule frag,
-        const core::graphics::VertexBinding& vertex_binding,
+        const core::graphics::VertexBindingDescription& vertex_binding,
         const core::graphics::DescriptorSetLayout& layout,
         const std::vector<core::graphics::ImageAttachmentInfo>& attachment_info,
-        const core::graphics::PipelineConfig& config);
+        const core::graphics::PipelineConfig& config
+    );
+
+    VulkanPipeline(VulkanPipeline&& other) = default;
+    VulkanPipeline& operator=(VulkanPipeline&& other) = default;
+
+    VulkanPipeline(const VulkanPipeline&) = delete;
+    VulkanPipeline& operator=(const VulkanPipeline&) = delete;
+
     ~VulkanPipeline() override = default;
     
     void bind(void* cb) const override;
